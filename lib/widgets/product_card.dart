@@ -61,7 +61,6 @@ class ProductCard extends StatelessWidget {
                   _InfoChip(label: formatMillimeters(product.quantityMm)),
                 ],
               ),
-              const Spacer(),
               const SizedBox(height: 18),
               Align(
                 alignment: Alignment.centerLeft,

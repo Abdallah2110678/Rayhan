@@ -1,12 +1,15 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/storage/local_store.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/translator.dart';
 import 'pages/login_page.dart';
 import 'pages/product_details_page.dart';
 import 'pages/rayhan_shell.dart';
 import 'pages/sell_product_page.dart';
 import 'state/customer_controller.dart';
+import 'state/expense_controller.dart';
 import 'state/product_catalog_controller.dart';
 
 class RayhanApp extends StatefulWidget {
@@ -18,10 +21,11 @@ class RayhanApp extends StatefulWidget {
 
 class _RayhanAppState extends State<RayhanApp> {
   static const String _username = 'Dr Mohamed sabie';
-  static const String _password = '21012002';
+  static const String _password = '12012002';
 
   final ProductCatalogController _products = ProductCatalogController();
   final CustomerController _customers = CustomerController();
+  final ExpenseController _expenses = ExpenseController();
   final LocalStore _localStore = LocalStore();
 
   bool _isAuthenticated = false;
@@ -37,18 +41,23 @@ class _RayhanAppState extends State<RayhanApp> {
   void dispose() {
     _products.removeListener(_persistData);
     _customers.removeListener(_persistData);
+    _expenses.removeListener(_persistData);
     _products.dispose();
     _customers.dispose();
+    _expenses.dispose();
     super.dispose();
   }
 
   Future<void> _initialize() async {
     final savedProducts = await _localStore.loadProducts();
     final savedCustomers = await _localStore.loadCustomers();
+    final savedExpenses = await _localStore.loadExpenses();
     _products.restoreFromJson(savedProducts);
     _customers.restoreFromJson(savedCustomers);
+    _expenses.restoreFromJson(savedExpenses);
     _products.addListener(_persistData);
     _customers.addListener(_persistData);
+    _expenses.addListener(_persistData);
 
     if (!mounted) {
       return;
@@ -67,6 +76,7 @@ class _RayhanAppState extends State<RayhanApp> {
     await Future.wait(<Future<void>>[
       _localStore.saveProducts(_products.toJson()),
       _localStore.saveCustomers(_customers.toJson()),
+      _localStore.saveExpenses(_expenses.toJson()),
     ]);
   }
 
@@ -116,6 +126,13 @@ class _RayhanAppState extends State<RayhanApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: Translator.locale,
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       title: 'Rayhan',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
@@ -125,6 +142,7 @@ class _RayhanAppState extends State<RayhanApp> {
               ? RayhanShell(
                   products: _products,
                   customers: _customers,
+              expenses: _expenses,
                   onLogout: _logout,
                 )
               : LoginPage(onLogin: _login),

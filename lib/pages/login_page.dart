@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../core/utils/translator.dart';
 import '../widgets/brand_mark.dart';
 
 class LoginPage extends StatefulWidget {
@@ -80,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
                           const Center(child: BrandMark()),
                           const SizedBox(height: 28),
                           Text(
-                            'Login',
+                            Translator.translate('login'),
                             style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w800,
@@ -89,15 +90,15 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sign in to access the Rayhan dashboard.',
+                            Translator.translate('login_subtitle'),
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: const Color(0xFF5B635E)),
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
                             controller: _usernameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Username',
+                            decoration: InputDecoration(
+                              labelText: Translator.translate('username'),
                             ),
                             validator: _requiredValidator,
                           ),
@@ -106,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
-                              labelText: 'Password',
+                              labelText: Translator.translate('password'),
                               suffixIcon: IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -147,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
 
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {
-    return 'This field is required.';
+    return Translator.translate('required');
   }
   return null;
 }

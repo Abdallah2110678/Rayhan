@@ -1,11 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../core/utils/formatters.dart';
+import '../core/utils/translator.dart';
 import '../pages/add_product_page.dart';
 import '../pages/customers_page.dart';
 import '../pages/dashboard_page.dart';
+import '../pages/finances_page.dart';
 import '../pages/products_page.dart';
 import '../pages/sell_product_page.dart';
 import '../state/customer_controller.dart';
+import '../state/expense_controller.dart';
 import '../state/product_catalog_controller.dart';
 import '../widgets/brand_mark.dart';
 
@@ -14,11 +18,13 @@ class RayhanShell extends StatefulWidget {
     super.key,
     required this.products,
     required this.customers,
+    required this.expenses,
     required this.onLogout,
   });
 
   final ProductCatalogController products;
   final CustomerController customers;
+  final ExpenseController expenses;
   final VoidCallback onLogout;
 
   @override
@@ -31,38 +37,48 @@ class _RayhanShellState extends State<RayhanShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      DashboardPage(products: widget.products, customers: widget.customers),
+      DashboardPage(
+        products: widget.products,
+        customers: widget.customers,
+        expenses: widget.expenses,
+      ),
       ProductsPage(catalog: widget.products),
       AddProductPage(catalog: widget.products),
       SellProductPage(products: widget.products, customers: widget.customers),
       CustomersPage(customers: widget.customers),
+      FinancesPage(expenses: widget.expenses),
     ];
 
-    final destinations = const <NavigationDestination>[
+    final destinations = <NavigationDestination>[
       NavigationDestination(
-        icon: Icon(Icons.dashboard_outlined),
-        selectedIcon: Icon(Icons.dashboard),
-        label: 'Home',
+        icon: const Icon(Icons.dashboard_outlined),
+        selectedIcon: const Icon(Icons.dashboard),
+        label: Translator.translate('home'),
       ),
       NavigationDestination(
-        icon: Icon(Icons.inventory_2_outlined),
-        selectedIcon: Icon(Icons.inventory_2),
-        label: 'Products',
+        icon: const Icon(Icons.inventory_2_outlined),
+        selectedIcon: const Icon(Icons.inventory_2),
+        label: Translator.translate('products'),
       ),
       NavigationDestination(
-        icon: Icon(Icons.add_box_outlined),
-        selectedIcon: Icon(Icons.add_box),
-        label: 'Add',
+        icon: const Icon(Icons.add_box_outlined),
+        selectedIcon: const Icon(Icons.add_box),
+        label: Translator.translate('add'),
       ),
       NavigationDestination(
-        icon: Icon(Icons.sell_outlined),
-        selectedIcon: Icon(Icons.sell),
-        label: 'Sell',
+        icon: const Icon(Icons.sell_outlined),
+        selectedIcon: const Icon(Icons.sell),
+        label: Translator.translate('sell'),
       ),
       NavigationDestination(
-        icon: Icon(Icons.groups_2_outlined),
-        selectedIcon: Icon(Icons.groups_2),
-        label: 'Customers',
+        icon: const Icon(Icons.groups_2_outlined),
+        selectedIcon: const Icon(Icons.groups_2),
+        label: Translator.translate('customers'),
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.account_balance_wallet_outlined),
+        selectedIcon: const Icon(Icons.account_balance_wallet),
+        label: Translator.translate('finance'),
       ),
     ];
 
@@ -92,15 +108,121 @@ class _RayhanShellState extends State<RayhanShell> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
+                      IconButton(
+                        icon: const Icon(Icons.language),
+                        tooltip: Translator.translate('toggle_language_tooltip'),
+                        onPressed: () {
+                          setState(() {
+                            Translator.toggleLocale();
+                          });
+                        },
+                      ),
                       AnimatedBuilder(
                         animation: Listenable.merge(<Listenable>[
                           widget.products,
                           widget.customers,
                         ]),
                         builder: (context, _) {
-                          return _ShellSummary(
-                            productCount: widget.products.productCount,
-                            customerCount: widget.customers.customerCount,
+                          final lowStockItems = widget.products.products
+                              .where((product) => product.quantityMm <= 110)
+                              .toList();
+
+                          return Row(
+                            children: [
+                                  IconButton(
+                                    onPressed: () async {
+                                      final selected = await showMenu<String>(
+                                        context: context,
+                                        position: const RelativeRect.fromLTRB(
+                                          1000,
+                                          100,
+                                          16,
+                                          0,
+                                        ),
+                                        items: lowStockItems.isEmpty
+                                            ? [
+                                                PopupMenuItem<String>(
+                                                  value: '',
+                                                  child: Text(
+                                                    Translator.translate('no_low_stock_items'),
+                                                  ),
+                                                ),
+                                              ]
+                                            : lowStockItems.map((product) {
+                                                return PopupMenuItem<String>(
+                                                  value: product.id,
+                                                  child: Text(
+                                                    '${product.name} - ${formatMillimeters(product.quantityMm)}',
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                      );
+
+                                      if (!mounted) return;
+
+                                      if (selected != null &&
+                                          selected.isNotEmpty) {
+                                        final productName = widget
+                                            .products
+                                            .products
+                                            .firstWhere((p) => p.id == selected)
+                                            .name;
+
+                                        ScaffoldMessenger.of(context)
+                                          ..hideCurrentSnackBar()
+                                          ..showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                Translator.translate(
+                                                  'check_product_stock',
+                                                  {'product': productName},
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.notifications_outlined,
+                                    ),
+                                    tooltip: 'Low stock notifications',
+                                  ),
+                                  if (lowStockItems.isNotEmpty)
+                                    Positioned(
+                                      right: 8,
+                                      top: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 20,
+                                          minHeight: 20,
+                                        ),
+                                        child: Text(
+                                          '${lowStockItems.length}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
+                              _ShellSummary(
+                                productCount: widget.products.productCount,
+                                customerCount: widget.customers.customerCount,
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -108,7 +230,7 @@ class _RayhanShellState extends State<RayhanShell> {
                       IconButton.outlined(
                         onPressed: widget.onLogout,
                         icon: const Icon(Icons.logout),
-                        tooltip: 'Logout',
+                        tooltip: Translator.translate('logout'),
                       ),
                     ],
                   ),
@@ -134,31 +256,36 @@ class _RayhanShellState extends State<RayhanShell> {
                                   _currentIndex = value;
                                 });
                               },
-                              destinations: const <NavigationRailDestination>[
+                              destinations: <NavigationRailDestination>[
                                 NavigationRailDestination(
-                                  icon: Icon(Icons.dashboard_outlined),
-                                  selectedIcon: Icon(Icons.dashboard),
-                                  label: Text('Home'),
+                                  icon: const Icon(Icons.dashboard_outlined),
+                                  selectedIcon: const Icon(Icons.dashboard),
+                                  label: Text(Translator.translate('home')),
                                 ),
                                 NavigationRailDestination(
-                                  icon: Icon(Icons.inventory_2_outlined),
-                                  selectedIcon: Icon(Icons.inventory_2),
-                                  label: Text('Products'),
+                                  icon: const Icon(Icons.inventory_2_outlined),
+                                  selectedIcon: const Icon(Icons.inventory_2),
+                                  label: Text(Translator.translate('products')),
                                 ),
                                 NavigationRailDestination(
-                                  icon: Icon(Icons.add_box_outlined),
-                                  selectedIcon: Icon(Icons.add_box),
-                                  label: Text('Add'),
+                                  icon: const Icon(Icons.add_box_outlined),
+                                  selectedIcon: const Icon(Icons.add_box),
+                                  label: Text(Translator.translate('add')),
                                 ),
                                 NavigationRailDestination(
-                                  icon: Icon(Icons.sell_outlined),
-                                  selectedIcon: Icon(Icons.sell),
-                                  label: Text('Sell'),
+                                  icon: const Icon(Icons.sell_outlined),
+                                  selectedIcon: const Icon(Icons.sell),
+                                  label: Text(Translator.translate('sell')),
                                 ),
                                 NavigationRailDestination(
-                                  icon: Icon(Icons.groups_2_outlined),
-                                  selectedIcon: Icon(Icons.groups_2),
-                                  label: Text('Customers'),
+                                  icon: const Icon(Icons.groups_2_outlined),
+                                  selectedIcon: const Icon(Icons.groups_2),
+                                  label: Text(Translator.translate('customers')),
+                                ),
+                                NavigationRailDestination(
+                                  icon: const Icon(Icons.account_balance_wallet_outlined),
+                                  selectedIcon: const Icon(Icons.account_balance_wallet),
+                                  label: Text(Translator.translate('finance')),
                                 ),
                               ],
                             ),

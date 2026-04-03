@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 class LocalStore {
   static const String _productsFileName = 'rayhan_products.json';
   static const String _customersFileName = 'rayhan_customers.json';
+  static const String _expensesFileName = 'rayhan_expenses.json';
 
   Future<Map<String, dynamic>> loadProducts() async {
     return _loadFile(_productsFileName);
@@ -13,6 +14,10 @@ class LocalStore {
 
   Future<Map<String, dynamic>> loadCustomers() async {
     return _loadFile(_customersFileName);
+  }
+
+  Future<Map<String, dynamic>> loadExpenses() async {
+    return _loadFile(_expensesFileName);
   }
 
   Future<void> saveProducts(Map<String, dynamic> data) async {
@@ -23,9 +28,16 @@ class LocalStore {
     await _saveFile(_customersFileName, data);
   }
 
+  Future<void> saveExpenses(Map<String, dynamic> data) async {
+    await _saveFile(_expensesFileName, data);
+  }
+
   Future<String> get productsPath async => (await _file(_productsFileName)).path;
 
   Future<String> get customersPath async => (await _file(_customersFileName)).path;
+
+  Future<String> get expensesPath async =>
+      (await _file(_expensesFileName)).path;
 
   Future<Map<String, dynamic>> _loadFile(String fileName) async {
     try {
