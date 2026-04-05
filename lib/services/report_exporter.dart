@@ -114,7 +114,7 @@ class ReportExporter {
               headers: const <String>[
                 'Product',
                 'Stock',
-                'Sell Price/mm',
+                'Sell Price/ml',
                 'Stock Value',
               ],
               data: products.isEmpty

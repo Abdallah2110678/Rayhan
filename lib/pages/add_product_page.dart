@@ -92,125 +92,141 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          PageHeader(
-            title: Translator.translate(
-              _isEditing ? 'edit_product' : 'add_a_product',
-            ),
-            subtitle: Translator.translate(
-              _isEditing ? 'edit_product_subtitle' : 'add_product_subtitle',
-            ),
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: Card(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            'Product information',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF173531),
-                                ),
-                          ),
-                          const SizedBox(height: 24),
-                          _FormLabel(label: Translator.translate('name_label')),
-                          TextFormField(
-                            controller: _nameController,
-                            validator: _requiredValidator,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              PageHeader(
+                title: Translator.translate(
+                  _isEditing ? 'edit_product' : 'add_a_product',
+                ),
+                subtitle: Translator.translate(
+                  _isEditing ? 'edit_product_subtitle' : 'add_product_subtitle',
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: Card(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    _FormLabel(
-                                      label: Translator.translate(
-                                        'bought_for_total_amount',
-                                      ),
+                              Text(
+                                'Product information',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF173531),
                                     ),
-                                    TextFormField(
-                                      controller: _purchasePriceController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      validator: _positiveDoubleValidator,
-                                    ),
-                                  ],
-                                ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    _FormLabel(
-                                      label: Translator.translate(
-                                        'sell_price_per_mm',
-                                      ),
+                              const SizedBox(height: 24),
+                              _FormLabel(
+                                label: Translator.translate('name_label'),
+                              ),
+                              TextFormField(
+                                controller: _nameController,
+                                validator: _requiredValidator,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: <Widget>[
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        _FormLabel(
+                                          label: Translator.translate(
+                                            'bought_for_total_amount',
+                                          ),
+                                        ),
+                                        TextFormField(
+                                          controller: _purchasePriceController,
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                              ),
+                                          validator: _positiveDoubleValidator,
+                                        ),
+                                      ],
                                     ),
-                                    TextFormField(
-                                      controller: _sellPriceController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      validator: _positiveDoubleValidator,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        _FormLabel(
+                                          label: Translator.translate(
+                                            'sell_price_per_mm',
+                                          ),
+                                        ),
+                                        TextFormField(
+                                          controller: _sellPriceController,
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                              ),
+                                          validator: _positiveDoubleValidator,
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _FormLabel(
+                                label: Translator.translate('quantity_in_mm'),
+                              ),
+                              TextFormField(
+                                controller: _quantityController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                validator: _positiveDoubleValidator,
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  onPressed: _submit,
+                                  icon: Icon(
+                                    _isEditing
+                                        ? Icons.edit_outlined
+                                        : Icons.add_circle_outline,
+                                  ),
+                                  label: Text(
+                                    Translator.translate(
+                                      _isEditing
+                                          ? 'update_product'
+                                          : 'save_product',
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          _FormLabel(
-                            label: Translator.translate('quantity_in_mm'),
-                          ),
-                          TextFormField(
-                            controller: _quantityController,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(decimal: true),
-                            validator: _positiveDoubleValidator,
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: _submit,
-                              icon: Icon(
-                                _isEditing
-                                    ? Icons.edit_outlined
-                                    : Icons.add_circle_outline,
-                              ),
-                              label: Text(
-                                Translator.translate(
-                                  _isEditing
-                                      ? 'update_product'
-                                      : 'save_product',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

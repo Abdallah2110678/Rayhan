@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/utils/formatters.dart';
+import '../core/utils/translator.dart';
 import '../models/customer.dart';
 import '../models/sale_record.dart';
 import '../state/customer_controller.dart';
@@ -110,7 +111,13 @@ class _SellProductPageState extends State<SellProductPage> {
         ..showSnackBar(
           SnackBar(
             content: Text(
-              'Sale saved for ${product?.name ?? 'product'}${customer == null ? '' : ' to ${customer.customerId} - ${customer.name}'}: ${formatCurrency(total)}',
+              Translator.translate('sale_saved', {
+                'product': product?.name ?? Translator.translate('product'),
+                'customer': customer == null
+                    ? ''
+                    : ' ${Translator.translate('customer')}: ${customer.customerId} - ${customer.name}',
+                'total': formatCurrency(total),
+              }),
             ),
           ),
         );
@@ -156,10 +163,9 @@ class _SellProductPageState extends State<SellProductPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const PageHeader(
-                title: 'Sell a product',
-                subtitle:
-                    'Save full sale data, review every sale, and prepare report-ready records.',
+              PageHeader(
+                title: Translator.translate('sell_a_product'),
+                subtitle: Translator.translate('sell_product_subtitle'),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -194,15 +200,21 @@ class _SellProductPageState extends State<SellProductPage> {
                                           _syncProductDefaults();
                                         });
                                       },
-                                      decoration: const InputDecoration(labelText: 'Product'),
+                                      decoration: InputDecoration(
+                                        labelText: Translator.translate(
+                                          'product',
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(height: 16),
                                     TextFormField(
                                       controller: _quantityController,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Quantity in ml',
+                                      decoration: InputDecoration(
+                                        labelText: Translator.translate(
+                                          'quantity_in_mm',
+                                        ),
                                       ),
                                       validator: _positiveDoubleValidator,
                                       onChanged: (_) => setState(_applySuggestedFinalTotal),
@@ -212,8 +224,10 @@ class _SellProductPageState extends State<SellProductPage> {
                                       controller: _unitPriceController,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Unit price per ml',
+                                      decoration: InputDecoration(
+                                        labelText: Translator.translate(
+                                          'unit_price_per_mm',
+                                        ),
                                       ),
                                       validator: _positiveDoubleValidator,
                                       onChanged: (_) => setState(_applySuggestedFinalTotal),
@@ -224,9 +238,13 @@ class _SellProductPageState extends State<SellProductPage> {
                                           ? null
                                           : _selectedCustomerId,
                                       items: <DropdownMenuItem<String>>[
-                                        const DropdownMenuItem<String>(
+                                        DropdownMenuItem<String>(
                                           value: '',
-                                          child: Text('No special customer'),
+                                          child: Text(
+                                            Translator.translate(
+                                              'no_special_customer',
+                                            ),
+                                          ),
                                         ),
                                         ...customers.map(
                                           (customer) => DropdownMenuItem<String>(
@@ -249,8 +267,10 @@ class _SellProductPageState extends State<SellProductPage> {
                                           _applySuggestedFinalTotal();
                                         });
                                       },
-                                      decoration: const InputDecoration(
-                                        labelText: 'Special customer',
+                                      decoration: InputDecoration(
+                                        labelText: Translator.translate(
+                                          'special_customer',
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 16),
@@ -258,8 +278,10 @@ class _SellProductPageState extends State<SellProductPage> {
                                       controller: _discountController,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Discount percent',
+                                      decoration: InputDecoration(
+                                        labelText: Translator.translate(
+                                          'discount_percent',
+                                        ),
                                       ),
                                       validator: _discountValidator,
                                       onChanged: (_) => setState(_applySuggestedFinalTotal),
@@ -269,7 +291,11 @@ class _SellProductPageState extends State<SellProductPage> {
                                       controller: _finalTotalController,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: const InputDecoration(labelText: 'Final price'),
+                                      decoration: InputDecoration(
+                                        labelText: Translator.translate(
+                                          'final_price',
+                                        ),
+                                      ),
                                       validator: _positiveDoubleValidator,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -277,7 +303,11 @@ class _SellProductPageState extends State<SellProductPage> {
                                     TextButton.icon(
                                       onPressed: () => setState(_applySuggestedFinalTotal),
                                       icon: const Icon(Icons.refresh),
-                                      label: const Text('Use suggested total'),
+                                      label: Text(
+                                        Translator.translate(
+                                          'use_suggested_total',
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(height: 20),
                                     if (selectedProduct != null)
@@ -287,7 +317,9 @@ class _SellProductPageState extends State<SellProductPage> {
                                         saleCount: widget.products.saleCount,
                                         unitPrice: formatCurrency(unitPrice),
                                         customerLabel: selectedCustomer == null
-                                            ? 'Regular customer'
+                                            ? Translator.translate(
+                                                'regular_customer',
+                                              )
                                             : '${selectedCustomer.customerId} - ${selectedCustomer.name}',
                                         subtotal: formatCurrency(subtotal),
                                         discount: formatDiscount(discountPercent),
@@ -300,7 +332,9 @@ class _SellProductPageState extends State<SellProductPage> {
                                       child: FilledButton.icon(
                                         onPressed: _submit,
                                         icon: const Icon(Icons.point_of_sale),
-                                        label: const Text('Confirm sale'),
+                                        label: Text(
+                                          Translator.translate('confirm_sale'),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 24),
@@ -359,16 +393,16 @@ class _SalePreview extends StatelessWidget {
         children: <Widget>[
           Text(productName, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Text('Current stock: $stockLeft'),
-          Text('Saved sales: $saleCount'),
-          Text('Unit price per mm: $unitPrice'),
-          Text('Customer: $customerLabel'),
-          Text('Subtotal: $subtotal'),
-          Text('Discount: $discount'),
-          Text('Suggested total: $suggestedTotal'),
+          Text('${Translator.translate('current_stock')}: $stockLeft'),
+          Text('${Translator.translate('saved_sales')}: $saleCount'),
+          Text('${Translator.translate('unit_price_per_mm')}: $unitPrice'),
+          Text('${Translator.translate('customer')}: $customerLabel'),
+          Text('${Translator.translate('subtotal')}: $subtotal'),
+          Text('${Translator.translate('discount')}: $discount'),
+          Text('${Translator.translate('suggested_total')}: $suggestedTotal'),
           const SizedBox(height: 8),
           Text(
-            'Final total: $finalTotal',
+            '${Translator.translate('final_total')}: $finalTotal',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -397,7 +431,7 @@ class _SalesHistorySection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (sales.isEmpty)
-          const Text('No sales saved yet.')
+          Text(Translator.translate('no_sales_saved'))
         else
           Column(
             children: sales
@@ -418,7 +452,7 @@ class _SaleHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final customerText = sale.customerName == null
-        ? 'Regular customer'
+        ? Translator.translate('regular_customer')
         : '${sale.customerId == null ? '' : '${sale.customerId} - '}${sale.customerName!}';
 
     return Container(
@@ -440,14 +474,24 @@ class _SaleHistoryTile extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 6),
-          Text('Date: ${formatDateTime(sale.soldAt)}'),
-          Text('Customer: $customerText'),
-          Text('Quantity: ${formatMillimeters(sale.quantityMm)}'),
-          Text('Unit price: ${formatCurrency(sale.unitPrice)}'),
-          Text('Discount: ${formatDiscount(sale.discountPercent)}'),
-          Text('Subtotal: ${formatCurrency(sale.subtotal)}'),
           Text(
-            'Final total: ${formatCurrency(sale.finalTotal)}',
+            '${Translator.translate('date')}: ${formatDateTime(sale.soldAt)}',
+          ),
+          Text('${Translator.translate('customer')}: $customerText'),
+          Text(
+            '${Translator.translate('quantity_in_mm')}: ${formatMillimeters(sale.quantityMm)}',
+          ),
+          Text(
+            '${Translator.translate('unit_price')}: ${formatCurrency(sale.unitPrice)}',
+          ),
+          Text(
+            '${Translator.translate('discount')}: ${formatDiscount(sale.discountPercent)}',
+          ),
+          Text(
+            '${Translator.translate('subtotal')}: ${formatCurrency(sale.subtotal)}',
+          ),
+          Text(
+            '${Translator.translate('final_total')}: ${formatCurrency(sale.finalTotal)}',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -463,8 +507,7 @@ class _SellEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Add at least one product before recording a sale.'),
+    return Center(child: Text(Translator.translate('sell_empty_state')),
     );
   }
 }
@@ -472,7 +515,7 @@ class _SellEmptyState extends StatelessWidget {
 String? _positiveDoubleValidator(String? value) {
   final parsed = double.tryParse((value ?? '').trim());
   if (parsed == null || parsed <= 0) {
-    return 'Enter a number greater than zero.';
+    return Translator.translate('required');
   }
   return null;
 }
@@ -480,7 +523,7 @@ String? _positiveDoubleValidator(String? value) {
 String? _discountValidator(String? value) {
   final parsed = double.tryParse((value ?? '').trim());
   if (parsed == null || parsed < 0 || parsed > 100) {
-    return 'Enter a discount from 0 to 100.';
+    return Translator.translate('discount_range_error');
   }
   return null;
 }

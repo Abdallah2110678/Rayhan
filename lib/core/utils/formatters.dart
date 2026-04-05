@@ -1,6 +1,7 @@
 ﻿String formatCurrency(double value) => '\$${value.toStringAsFixed(2)}';
 
-String formatMillimeters(double value) => '${value.toStringAsFixed(value % 1 == 0 ? 0 : 2)} mm';
+String formatMillimeters(double value) =>
+    '${value.toStringAsFixed(value % 1 == 0 ? 0 : 2)} ml';
 
 String formatDiscount(double value) => '${value.toStringAsFixed(value % 1 == 0 ? 0 : 2)}%';
 
