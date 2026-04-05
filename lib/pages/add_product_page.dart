@@ -1,13 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../core/utils/translator.dart';
 import '../models/product_draft.dart';
 import '../state/product_catalog_controller.dart';
 import '../widgets/page_header.dart';
 
 class AddProductPage extends StatefulWidget {
-  const AddProductPage({super.key, required this.catalog});
+  const AddProductPage({super.key, required this.catalog, this.productId});
 
   final ProductCatalogController catalog;
+  final String? productId;
 
   @override
   State<AddProductPage> createState() => _AddProductPageState();
@@ -19,6 +21,22 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _purchasePriceController = TextEditingController();
   final TextEditingController _sellPriceController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
+
+  bool get _isEditing => widget.productId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      final product = widget.catalog.productById(widget.productId!);
+      if (product != null) {
+        _nameController.text = product.name;
+        _purchasePriceController.text = product.purchasePrice.toString();
+        _sellPriceController.text = product.sellPrice.toString();
+        _quantityController.text = product.quantityMm.toString();
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -34,24 +52,42 @@ class _AddProductPageState extends State<AddProductPage> {
       return;
     }
 
-    final product = widget.catalog.addProduct(
-      ProductDraft(
-        name: _nameController.text.trim(),
-        purchasePrice: double.parse(_purchasePriceController.text.trim()),
-        sellPrice: double.parse(_sellPriceController.text.trim()),
-        quantityMm: double.parse(_quantityController.text.trim()),
-      ),
+    final draft = ProductDraft(
+      name: _nameController.text.trim(),
+      purchasePrice: double.parse(_purchasePriceController.text.trim()),
+      sellPrice: double.parse(_sellPriceController.text.trim()),
+      quantityMm: double.parse(_quantityController.text.trim()),
     );
 
-    _formKey.currentState!.reset();
-    _nameController.clear();
-    _purchasePriceController.clear();
-    _sellPriceController.clear();
-    _quantityController.clear();
+    if (_isEditing) {
+      widget.catalog.updateProduct(widget.productId!, draft);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('product_updated', {'name': draft.name}),
+            ),
+          ),
+        );
+    } else {
+      final product = widget.catalog.addProduct(draft);
+      _formKey.currentState!.reset();
+      _nameController.clear();
+      _purchasePriceController.clear();
+      _sellPriceController.clear();
+      _quantityController.clear();
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('${product.name} created.')));
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('product_created', {'name': product.name}),
+            ),
+          ),
+        );
+    }
   }
 
   @override
@@ -61,10 +97,13 @@ class _AddProductPageState extends State<AddProductPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const PageHeader(
-            title: 'Add a product',
-            subtitle:
-                'Write the total buy amount for the whole quantity, not a price per mm.',
+          PageHeader(
+            title: Translator.translate(
+              _isEditing ? 'edit_product' : 'add_a_product',
+            ),
+            subtitle: Translator.translate(
+              _isEditing ? 'edit_product_subtitle' : 'add_product_subtitle',
+            ),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -87,7 +126,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                 ),
                           ),
                           const SizedBox(height: 24),
-                          _FormLabel(label: 'Name'),
+                          _FormLabel(label: Translator.translate('name_label')),
                           TextFormField(
                             controller: _nameController,
                             validator: _requiredValidator,
@@ -99,7 +138,11 @@ class _AddProductPageState extends State<AddProductPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    const _FormLabel(label: 'Bought for total amount'),
+                                    _FormLabel(
+                                      label: Translator.translate(
+                                        'bought_for_total_amount',
+                                      ),
+                                    ),
                                     TextFormField(
                                       controller: _purchasePriceController,
                                       keyboardType:
@@ -114,7 +157,11 @@ class _AddProductPageState extends State<AddProductPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    const _FormLabel(label: 'Sell price per mm'),
+                                    _FormLabel(
+                                      label: Translator.translate(
+                                        'sell_price_per_mm',
+                                      ),
+                                    ),
                                     TextFormField(
                                       controller: _sellPriceController,
                                       keyboardType:
@@ -127,7 +174,9 @@ class _AddProductPageState extends State<AddProductPage> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          _FormLabel(label: 'Quantity in mm'),
+                          _FormLabel(
+                            label: Translator.translate('quantity_in_mm'),
+                          ),
                           TextFormField(
                             controller: _quantityController,
                             keyboardType:
@@ -139,8 +188,18 @@ class _AddProductPageState extends State<AddProductPage> {
                             width: double.infinity,
                             child: FilledButton.icon(
                               onPressed: _submit,
-                              icon: const Icon(Icons.add_circle_outline),
-                              label: const Text('Save product'),
+                              icon: Icon(
+                                _isEditing
+                                    ? Icons.edit_outlined
+                                    : Icons.add_circle_outline,
+                              ),
+                              label: Text(
+                                Translator.translate(
+                                  _isEditing
+                                      ? 'update_product'
+                                      : 'save_product',
+                                ),
+                              ),
                             ),
                           ),
                         ],

@@ -202,7 +202,7 @@ class _SellProductPageState extends State<SellProductPage> {
                                       keyboardType:
                                           const TextInputType.numberWithOptions(decimal: true),
                                       decoration: const InputDecoration(
-                                        labelText: 'Quantity in mm',
+                                        labelText: 'Quantity in ml',
                                       ),
                                       validator: _positiveDoubleValidator,
                                       onChanged: (_) => setState(_applySuggestedFinalTotal),
@@ -213,7 +213,7 @@ class _SellProductPageState extends State<SellProductPage> {
                                       keyboardType:
                                           const TextInputType.numberWithOptions(decimal: true),
                                       decoration: const InputDecoration(
-                                        labelText: 'Unit price per mm',
+                                        labelText: 'Unit price per ml',
                                       ),
                                       validator: _positiveDoubleValidator,
                                       onChanged: (_) => setState(_applySuggestedFinalTotal),

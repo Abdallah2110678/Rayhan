@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/utils/formatters.dart';
@@ -98,10 +99,24 @@ class _DashboardPageState extends State<DashboardPage> {
 
     try {
       final sales = widget.products.salesBetween(from, to);
+      final products = widget.products.products.toList(growable: false);
+      final expenses = widget.expenses.expenses.toList(growable: false);
+
+      if (products.isEmpty && sales.isEmpty && expenses.isEmpty) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(Translator.translate('pdf_report_no_data'))),
+          );
+        return;
+      }
+
       final path = await _reportExporter.exportSalesReport(
-        products: widget.products.products.toList(growable: false),
+        products: products,
         sales: sales,
-        expenses: widget.expenses.expenses.toList(growable: false),
+        expenses: expenses,
         from: from,
         to: to,
       );
@@ -110,9 +125,68 @@ class _DashboardPageState extends State<DashboardPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('PDF report saved to $path')));
+      debugPrint('PDF report saved to: $path');
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(Translator.translate('pdf_report_saved_title')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                Translator.translate('pdf_report_saved_message', {
+                  'path': path,
+                }),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'File: rayhan_report.pdf',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                try {
+                  final file = File(path);
+                  if (await file.exists()) {
+                    final result = await OpenFile.open(file.path);
+                    if (result.type != ResultType.done) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Could not open PDF automatically. Use the file path above in a file manager.',
+                          ),
+                        ),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('PDF not found at saved path.')),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Could not open file: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Could not open PDF automatically. Please check path in dialog and open manually.',
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Text(Translator.translate('open_file')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(Translator.translate('ok')),
+            ),
+          ],
+        ),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -120,7 +194,15 @@ class _DashboardPageState extends State<DashboardPage> {
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Could not export report: $error')));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('pdf_report_error', {
+                'error': error.toString(),
+              }),
+            ),
+          ),
+        );
     } finally {
       if (mounted) {
         setState(() {
@@ -146,12 +228,26 @@ class _DashboardPageState extends State<DashboardPage> {
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('All data exported to $path')));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('all_data_exported', {'path': path}),
+            ),
+          ),
+        );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Export failed: $error')));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('import_data_failed', {
+                'error': error.toString(),
+              }),
+            ),
+          ),
+        );
     } finally {
       if (mounted) {
         setState(() {
@@ -192,13 +288,27 @@ class _DashboardPageState extends State<DashboardPage> {
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Imported data from $path')));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('import_data_success', {'path': path}),
+            ),
+          ),
+        );
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Import failed: $error')));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              Translator.translate('import_data_failed', {
+                'error': error.toString(),
+              }),
+            ),
+          ),
+        );
     } finally {
       if (mounted) {
         setState(() {

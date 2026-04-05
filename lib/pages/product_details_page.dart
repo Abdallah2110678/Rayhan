@@ -1,9 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../core/utils/formatters.dart';
+import '../core/utils/translator.dart';
 import '../state/customer_controller.dart';
 import '../state/product_catalog_controller.dart';
 import '../widgets/brand_mark.dart';
+import 'add_product_page.dart';
 import 'sell_product_page.dart';
 
 class ProductDetailsPage extends StatelessWidget {
@@ -50,7 +52,9 @@ class ProductDetailsPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Product details with total buy amount, sell price, and quantity in mm.',
+                              Translator.translate(
+                                'product_details_description',
+                              ),
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     color: const Color(0xFF5A625D),
                                   ),
@@ -63,21 +67,32 @@ class ProductDetailsPage extends StatelessWidget {
                                   spacing: 12,
                                   runSpacing: 12,
                                   children: <Widget>[
-                                    _MetaTile(label: 'Name', value: product.name),
                                     _MetaTile(
-                                      label: 'Bought for',
+                                      label: Translator.translate('name_label'),
+                                      value: product.name,
+                                    ),
+                                    _MetaTile(
+                                      label: Translator.translate(
+                                        'bought_for_total_amount',
+                                      ),
                                       value: formatCurrency(product.purchasePrice),
                                     ),
                                     _MetaTile(
-                                      label: 'Sell price / mm',
+                                      label: Translator.translate(
+                                        'sell_price_per_mm',
+                                      ),
                                       value: formatCurrency(product.sellPrice),
                                     ),
                                     _MetaTile(
-                                      label: 'Quantity',
+                                      label: Translator.translate(
+                                        'quantity_in_mm',
+                                      ),
                                       value: formatMillimeters(product.quantityMm),
                                     ),
                                     _MetaTile(
-                                      label: 'Remaining stock cost',
+                                      label: Translator.translate(
+                                        'remaining_stock_cost',
+                                      ),
                                       value: formatCurrency(product.stockValue),
                                     ),
                                   ],
@@ -92,7 +107,7 @@ class ProductDetailsPage extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
                                     Text(
-                                      'Actions',
+                                      Translator.translate('actions'),
                                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                             fontWeight: FontWeight.w800,
                                             color: const Color(0xFF173531),
@@ -111,19 +126,118 @@ class ProductDetailsPage extends StatelessWidget {
                                             );
                                           },
                                           icon: const Icon(Icons.sell_outlined),
-                                          label: const Text('Sell this product'),
+                                          label: Text(
+                                            Translator.translate(
+                                              'sell_this_product',
+                                            ),
+                                          ),
+                                        ),
+                                        FilledButton.icon(
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute<void>(
+                                                builder: (context) =>
+                                                    AddProductPage(
+                                                      catalog: catalog,
+                                                      productId: product.id,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.edit_outlined),
+                                          label: Text(
+                                            Translator.translate(
+                                              'edit_product',
+                                            ),
+                                          ),
+                                        ),
+                                        FilledButton.icon(
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                Colors.red.shade700,
+                                          ),
+                                          onPressed: () async {
+                                            final shouldDelete =
+                                                await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    title: Text(
+                                                      Translator.translate(
+                                                        'delete_product',
+                                                      ),
+                                                    ),
+                                                    content: Text(
+                                                      Translator.translate(
+                                                        'product_delete_confirm',
+                                                      ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(false),
+                                                        child: Text(
+                                                          Translator.translate(
+                                                            'back',
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(true),
+                                                        child: Text(
+                                                          Translator.translate(
+                                                            'delete_product',
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+
+                                            if (shouldDelete == true) {
+                                              catalog.removeProduct(product.id);
+                                              Navigator.of(context).pop();
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    Translator.translate(
+                                                      'product_deleted',
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(
+                                            Icons.delete_outlined,
+                                          ),
+                                          label: Text(
+                                            Translator.translate(
+                                              'delete_product',
+                                            ),
+                                          ),
                                         ),
                                         OutlinedButton.icon(
                                           onPressed: () => Navigator.of(context).pop(),
                                           icon: const Icon(Icons.arrow_back),
-                                          label: const Text('Back'),
+                                          label: Text(
+                                            Translator.translate('back'),
+                                          ),
                                         ),
                                       ],
                                     ),
                                     if (customers.customers.isNotEmpty) ...<Widget>[
                                       const SizedBox(height: 16),
                                       Text(
-                                        'Special customers discounts are available in the sell page.',
+                                        Translator.translate(
+                                          'special_customers_discount',
+                                        ),
                                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                               color: const Color(0xFF5A625D),
                                             ),

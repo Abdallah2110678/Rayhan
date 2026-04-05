@@ -79,6 +79,37 @@ class ProductCatalogController extends ChangeNotifier {
     return product;
   }
 
+  void removeProduct(String id) {
+    final index = _products.indexWhere((product) => product.id == id);
+    if (index == -1) {
+      throw ArgumentError('Product not found.');
+    }
+    final product = _products.removeAt(index);
+    _totalPurchaseValue -= product.purchasePrice;
+    _totalPurchasedQuantityMm -= product.quantityMm;
+    notifyListeners();
+  }
+
+  void updateProduct(String id, ProductDraft draft) {
+    final index = _products.indexWhere((product) => product.id == id);
+    if (index == -1) {
+      throw ArgumentError('Product not found.');
+    }
+    final oldProduct = _products[index];
+    final newProduct = oldProduct.copyWith(
+      name: draft.name,
+      purchasePrice: draft.purchasePrice,
+      sellPrice: draft.sellPrice,
+      quantityMm: draft.quantityMm,
+      initialQuantityMm: draft.quantityMm,
+    );
+    _products[index] = newProduct;
+    _totalPurchaseValue += draft.purchasePrice - oldProduct.purchasePrice;
+    _totalPurchasedQuantityMm +=
+        draft.quantityMm - oldProduct.initialQuantityMm;
+    notifyListeners();
+  }
+
   Product? productById(String id) {
     for (final product in _products) {
       if (product.id == id) {

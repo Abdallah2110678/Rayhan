@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../core/utils/formatters.dart';
+import '../core/utils/translator.dart';
 import '../models/product.dart';
 import '../state/product_catalog_controller.dart';
 import '../widgets/page_header.dart';
@@ -47,11 +48,10 @@ class _ProductsPageState extends State<ProductsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               PageHeader(
-                title: 'All products and search',
-                subtitle:
-                    'Read all products, search them, and open a selected product page with sell actions.',
+                title: Translator.translate('all_products_page_title'),
+                subtitle: Translator.translate('all_products_page_subtitle'),
                 trailing: _OverviewPill(
-                  label: 'Stock quantity',
+                  label: Translator.translate('products_overview'),
                   value: formatMillimeters(widget.catalog.totalQuantityMm),
                 ),
               ),
@@ -63,26 +63,28 @@ class _ProductsPageState extends State<ProductsPage> {
                     _query = value;
                   });
                 },
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Search products',
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: Translator.translate('search_products'),
                 ),
               ),
               const SizedBox(height: 20),
               Expanded(
                 child: !hasProducts
-                    ? const _EmptyState(
+                    ? _EmptyState(
                         icon: Icons.inventory_2_outlined,
-                        title: 'No products yet',
-                        description:
-                            'Open the Add page and create the first product for Rayhan.',
+                        title: Translator.translate('no_products_yet'),
+                        description: Translator.translate(
+                          'no_products_yet_description',
+                        ),
                       )
                     : products.isEmpty
-                        ? const _EmptyState(
+                    ? _EmptyState(
                             icon: Icons.search_off,
-                            title: 'No matching products',
-                            description:
-                                'Try another keyword or clear the search field to see all products.',
+                        title: Translator.translate('no_matching_products'),
+                        description: Translator.translate(
+                          'no_matching_products_description',
+                        ),
                           )
                         : LayoutBuilder(
                             builder: (context, constraints) {

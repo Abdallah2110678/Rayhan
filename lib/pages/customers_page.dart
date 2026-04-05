@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../core/utils/formatters.dart';
+import '../core/utils/translator.dart';
 import '../models/customer.dart';
 import '../models/customer_draft.dart';
 import '../state/customer_controller.dart';
@@ -46,16 +47,20 @@ class _CustomersPageState extends State<CustomersPage> {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete customer'),
-        content: Text('Delete ${customer.name} from special customers?'),
+        title: Text(Translator.translate('delete_customer')),
+        content: Text(
+          Translator.translate('delete_customer_confirmation', {
+            'name': customer.name,
+          }),
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(Translator.translate('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(Translator.translate('delete')),
           ),
         ],
       ),
@@ -80,13 +85,12 @@ class _CustomersPageState extends State<CustomersPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               PageHeader(
-                title: 'Special customers',
-                subtitle:
-                    'CRUD page for customers with a customer ID and custom discount used during sales.',
+                title: Translator.translate('special_customers'),
+                subtitle: Translator.translate('customers_subtitle'),
                 trailing: FilledButton.icon(
                   onPressed: _openEditor,
                   icon: const Icon(Icons.person_add_alt_1),
-                  label: const Text('Add customer'),
+                  label: Text(Translator.translate('add_customer')),
                 ),
               ),
               const SizedBox(height: 20),
@@ -97,15 +101,19 @@ class _CustomersPageState extends State<CustomersPage> {
                     _query = value;
                   });
                 },
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Search customers by ID, name, phone, or notes',
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: Translator.translate('search_hint'),
                 ),
               ),
               const SizedBox(height: 20),
               Expanded(
                 child: !hasCustomers
-                    ? const Center(child: Text('No special customers yet.'))
+                    ? Center(
+                        child: Text(
+                          Translator.translate('no_special_customers_yet'),
+                        ),
+                      )
                     : ListView.separated(
                         itemCount: customers.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -214,7 +222,11 @@ class _CustomerEditorState extends State<_CustomerEditor> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.customer == null ? 'Add customer' : 'Edit customer'),
+      title: Text(
+        widget.customer == null
+            ? Translator.translate('add_customer_dialog_title')
+            : Translator.translate('edit_customer'),
+      ),
       content: SizedBox(
         width: 460,
         child: Form(
@@ -225,33 +237,43 @@ class _CustomerEditorState extends State<_CustomerEditor> {
               children: <Widget>[
                 TextFormField(
                   controller: _customerIdController,
-                  decoration: const InputDecoration(labelText: 'Customer ID'),
+                  decoration: InputDecoration(
+                    labelText: Translator.translate('customer_id'),
+                  ),
                   validator: _requiredValidator,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(
+                    labelText: Translator.translate('name_label'),
+                  ),
                   validator: _requiredValidator,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _phoneController,
-                  decoration: const InputDecoration(labelText: 'Phone'),
+                  decoration: InputDecoration(
+                    labelText: Translator.translate('phone_label'),
+                  ),
                   validator: _requiredValidator,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _discountController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Discount percent'),
+                  decoration: InputDecoration(
+                    labelText: Translator.translate('discount_percent_label'),
+                  ),
                   validator: _discountValidator,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _notesController,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Notes'),
+                  decoration: InputDecoration(
+                    labelText: Translator.translate('notes_label'),
+                  ),
                 ),
               ],
             ),
@@ -261,11 +283,11 @@ class _CustomerEditorState extends State<_CustomerEditor> {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(Translator.translate('cancel')),
         ),
         FilledButton(
           onPressed: _submit,
-          child: const Text('Save'),
+          child: Text(Translator.translate('save')),
         ),
       ],
     );
@@ -274,7 +296,7 @@ class _CustomerEditorState extends State<_CustomerEditor> {
 
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {
-    return 'This field is required.';
+    return Translator.translate('field_required');
   }
   return null;
 }
@@ -282,7 +304,7 @@ String? _requiredValidator(String? value) {
 String? _discountValidator(String? value) {
   final parsed = double.tryParse((value ?? '').trim());
   if (parsed == null || parsed < 0 || parsed > 100) {
-    return 'Enter a discount from 0 to 100.';
+    return Translator.translate('discount_range_error');
   }
   return null;
 }

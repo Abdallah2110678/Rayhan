@@ -21,7 +21,7 @@ class RayhanApp extends StatefulWidget {
 
 class _RayhanAppState extends State<RayhanApp> {
   static const String _username = 'Dr Mohamed sabie';
-  static const String _password = '12012002';
+  static const String _password = '21012002';
 
   final ProductCatalogController _products = ProductCatalogController();
   final CustomerController _customers = CustomerController();
@@ -133,7 +133,7 @@ class _RayhanAppState extends State<RayhanApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      title: 'Rayhan',
+      title: Translator.translate('app_name'),
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       home: !_isReady

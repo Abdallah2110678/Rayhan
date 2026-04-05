@@ -129,6 +129,8 @@ class _RayhanShellState extends State<RayhanShell> {
 
                           return Row(
                             children: [
+                              Stack(
+                                children: [
                                   IconButton(
                                     onPressed: () async {
                                       final selected = await showMenu<String>(
@@ -188,7 +190,9 @@ class _RayhanShellState extends State<RayhanShell> {
                                     icon: const Icon(
                                       Icons.notifications_outlined,
                                     ),
-                                    tooltip: 'Low stock notifications',
+                                    tooltip: Translator.translate(
+                                      'low_stock_notifications_tooltip',
+                                    ),
                                   ),
                                   if (lowStockItems.isNotEmpty)
                                     Positioned(

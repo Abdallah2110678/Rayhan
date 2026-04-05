@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/utils/formatters.dart';
+import '../core/utils/translator.dart';
 import '../models/expense_record.dart';
 import '../state/expense_controller.dart';
 import '../widgets/page_header.dart';
@@ -46,6 +47,9 @@ class _FinancesPageState extends State<FinancesPage> {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(Translator.translate('delete')),
+          ),
+        ],
+      ),
     );
 
     if (shouldDelete == true) {
@@ -196,11 +200,11 @@ class _ExpenseEditorState extends State<_ExpenseEditor> {
               },
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter an amount';
+                  return Translator.translate('please_enter_amount');
                 }
                 final num = double.tryParse(value);
                 if (num == null || num <= 0) {
-                  return 'Please enter a valid amount';
+                  return Translator.translate('please_enter_valid_amount');
                 }
                 return null;
               },
@@ -213,7 +217,7 @@ class _ExpenseEditorState extends State<_ExpenseEditor> {
               },
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a reason';
+                  return Translator.translate('please_enter_reason');
                 }
                 return null;
               },
@@ -224,7 +228,7 @@ class _ExpenseEditorState extends State<_ExpenseEditor> {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(Translator.translate('cancel')),
         ),
         FilledButton(
           onPressed: () {
@@ -236,7 +240,7 @@ class _ExpenseEditorState extends State<_ExpenseEditor> {
               });
             }
           },
-          child: const Text('Save'),
+          child: Text(Translator.translate('save')),
         ),
       ],
     );
