@@ -122,7 +122,7 @@ class _AddProductPageState extends State<AddProductPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                'Product information',
+                                Translator.translate('product_information'),
                                 style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w800,
