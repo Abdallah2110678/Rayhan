@@ -1,4 +1,9 @@
-﻿String formatCurrency(double value) => '\$${value.toStringAsFixed(2)}';
+import 'translator.dart';
+
+String formatCurrency(double value) {
+  final formattedValue = value.toStringAsFixed(2);
+  return Translator.isArabic ? '$formattedValue جنيه' : 'EGP $formattedValue';
+}
 
 String formatMillimeters(double value) =>
     '${value.toStringAsFixed(value % 1 == 0 ? 0 : 2)} ml';

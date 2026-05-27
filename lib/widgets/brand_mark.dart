@@ -57,27 +57,35 @@ class BrandMark extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              'Rayhan',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: const Color(0xFF153531),
-                letterSpacing: 0.3,
-              ),
-            ),
-            if (showTagline)
+        // constrain text to avoid overflow in tight app bar spaces
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 160),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
               Text(
-                'Product Catalog',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF6D746D),
-                  fontWeight: FontWeight.w600,
+                'Rayhan',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF153531),
+                  letterSpacing: 0.3,
                 ),
               ),
-          ],
+              if (showTagline)
+                Text(
+                  'Product Catalog',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6D746D),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );

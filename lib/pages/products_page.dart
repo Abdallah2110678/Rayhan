@@ -100,8 +100,10 @@ class _ProductsPageState extends State<ProductsPage> {
                                   crossAxisCount: crossAxisCount,
                                   crossAxisSpacing: 18,
                                   mainAxisSpacing: 18,
-                                  childAspectRatio:
-                                      crossAxisCount == 1 ? 1.55 : 1.08,
+                              // increase vertical space for single-column cards to avoid overflow
+                              childAspectRatio: crossAxisCount == 1
+                                  ? 1.25
+                                  : 1.08,
                                 ),
                                 itemCount: products.length,
                                 itemBuilder: (context, index) {

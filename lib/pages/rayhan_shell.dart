@@ -342,7 +342,10 @@ class _ShellSummary extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE6DDCF)),
       ),
       child: Text(
-        '$productCount products • $customerCount customers',
+        Translator.translate('product_customer_summary', {
+          'products': '$productCount',
+          'customers': '$customerCount',
+        }),
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: const Color(0xFF1D403B),

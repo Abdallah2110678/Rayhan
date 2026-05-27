@@ -28,59 +28,105 @@ class SellProductPage extends StatefulWidget {
 
 class _SellProductPageState extends State<SellProductPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _unitPriceController = TextEditingController();
-  final TextEditingController _discountController = TextEditingController(text: '0');
-  final TextEditingController _finalTotalController = TextEditingController();
-
-  String? _selectedProductId;
   String? _selectedCustomerId;
+  final List<_SaleRow> _saleRows = <_SaleRow>[];
 
   @override
   void initState() {
     super.initState();
-    _selectedProductId = widget.initialProductId;
+    _saleRows.add(_createSaleRow(widget.initialProductId));
+    _syncSaleRowDefaults(_saleRows.first);
   }
 
   @override
   void dispose() {
-    _quantityController.dispose();
-    _unitPriceController.dispose();
-    _discountController.dispose();
-    _finalTotalController.dispose();
+    for (final row in _saleRows) {
+      row.dispose();
+    }
+    // row controllers disposed above
     super.dispose();
   }
 
   void _syncDiscountFromCustomer(Customer? customer) {
-    _discountController.text = customer == null
+    final text = customer == null
         ? '0'
         : customer.discountPercent.toStringAsFixed(
             customer.discountPercent % 1 == 0 ? 0 : 2,
           );
+    for (final row in _saleRows) {
+      row.discountController.text = text;
+      _applySuggestedFinalTotalForRow(row);
+    }
   }
 
-  void _syncProductDefaults() {
-    final product = _selectedProductId == null
+  void _applySuggestedFinalTotalForAllRows() {
+    setState(() {
+      for (final row in _saleRows) {
+        _applySuggestedFinalTotalForRow(row);
+      }
+    });
+  }
+
+  _SaleRow _createSaleRow(String? productId) {
+    return _SaleRow(
+      selectedProductId: productId,
+      quantityController: TextEditingController(),
+      unitPriceController: TextEditingController(),
+      discountController: TextEditingController(text: '0'),
+      finalTotalController: TextEditingController(),
+    );
+  }
+
+  void _syncSaleRowDefaults(_SaleRow row) {
+    final product = row.selectedProductId == null
         ? null
-        : widget.products.productById(_selectedProductId!);
+        : widget.products.productById(row.selectedProductId!);
     if (product == null) {
       return;
     }
 
-    _unitPriceController.text = product.sellPrice.toStringAsFixed(2);
-    _applySuggestedFinalTotal();
+    row.unitPriceController.text = product.sellPrice.toStringAsFixed(2);
+    _applySuggestedFinalTotalForRow(row);
   }
 
-  void _applySuggestedFinalTotal() {
-    final quantityMm = double.tryParse(_quantityController.text.trim()) ?? 0;
-    final unitPrice = double.tryParse(_unitPriceController.text.trim()) ?? 0;
-    final discountPercent = double.tryParse(_discountController.text.trim()) ?? 0;
+  void _applySuggestedFinalTotalForRow(_SaleRow row) {
+    final quantityMm = double.tryParse(row.quantityController.text.trim()) ?? 0;
+    final unitPrice = double.tryParse(row.unitPriceController.text.trim()) ?? 0;
+    final discountPercent =
+        double.tryParse(row.discountController.text.trim()) ?? 0;
     final suggestedTotal = (unitPrice * quantityMm) * (1 - (discountPercent / 100));
-    _finalTotalController.text = suggestedTotal.toStringAsFixed(2);
+    row.finalTotalController.text = suggestedTotal.toStringAsFixed(2);
+  }
+
+  void _addSaleRow() {
+    setState(() {
+      final defaultProductId = widget.products.products.isNotEmpty
+          ? widget.products.products.first.id
+          : null;
+      final row = _createSaleRow(defaultProductId);
+      _saleRows.add(row);
+      _syncSaleRowDefaults(row);
+    });
+  }
+
+  void _removeSaleRow(int index) {
+    if (_saleRows.length <= 1) {
+      return;
+    }
+    setState(() {
+      _saleRows[index].dispose();
+      _saleRows.removeAt(index);
+    });
+  }
+
+  double get _totalOrderValue {
+    return _saleRows.fold<double>(0, (sum, row) {
+      return sum + (double.tryParse(row.finalTotalController.text.trim()) ?? 0);
+    });
   }
 
   void _submit() {
-    if (!_formKey.currentState!.validate() || _selectedProductId == null) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -89,22 +135,39 @@ class _SellProductPageState extends State<SellProductPage> {
         : widget.customers.customerById(_selectedCustomerId!);
 
     try {
-      final quantityMm = double.parse(_quantityController.text.trim());
-      final unitPrice = double.parse(_unitPriceController.text.trim());
-      final discountPercent = double.parse(_discountController.text.trim());
-      final subtotal = quantityMm * unitPrice;
-      final total = widget.products.sellProduct(
-        productId: _selectedProductId!,
-        quantityMm: quantityMm,
-        unitPrice: unitPrice,
-        discountPercent: discountPercent,
-        subtotal: subtotal,
-        finalTotal: double.parse(_finalTotalController.text.trim()),
-        customerId: customer?.customerId,
-        customerName: customer?.name,
-      );
+      double totalSale = 0;
+      for (final row in _saleRows) {
+        final productId = row.selectedProductId;
+        if (productId == null) {
+          continue;
+        }
 
-      final product = widget.products.productById(_selectedProductId!);
+        final quantityMm = double.parse(row.quantityController.text.trim());
+        final unitPrice = double.parse(row.unitPriceController.text.trim());
+        final discountPercent = double.parse(
+          row.discountController.text.trim(),
+        );
+        final subtotal = quantityMm * unitPrice;
+        final total = widget.products.sellProduct(
+          productId: productId,
+          quantityMm: quantityMm,
+          unitPrice: unitPrice,
+          discountPercent: discountPercent,
+          subtotal: subtotal,
+          finalTotal: double.parse(row.finalTotalController.text.trim()),
+          customerId: customer?.customerId,
+          customerName: customer?.name,
+        );
+        totalSale += total;
+      }
+
+      final productNames = _saleRows
+          .map(
+            (row) =>
+                widget.products.productById(row.selectedProductId ?? '')?.name,
+          )
+          .whereType<String>()
+          .join(', ');
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -112,19 +175,32 @@ class _SellProductPageState extends State<SellProductPage> {
           SnackBar(
             content: Text(
               Translator.translate('sale_saved', {
-                'product': product?.name ?? Translator.translate('product'),
+                'product': productNames.isEmpty
+                    ? Translator.translate('product')
+                    : productNames,
                 'customer': customer == null
                     ? ''
                     : ' ${Translator.translate('customer')}: ${customer.customerId} - ${customer.name}',
-                'total': formatCurrency(total),
+                'total': formatCurrency(totalSale),
               }),
             ),
           ),
         );
 
-      _quantityController.clear();
-      _finalTotalController.clear();
-      _syncProductDefaults();
+      for (final row in _saleRows) {
+        row.quantityController.clear();
+        row.finalTotalController.clear();
+        row.discountController.text = '0';
+        row.unitPriceController.clear();
+      }
+      setState(() {
+        for (final row in _saleRows) {
+          row.dispose();
+        }
+        _saleRows.clear();
+        _saleRows.add(_createSaleRow(widget.initialProductId));
+        _syncSaleRowDefaults(_saleRows.first);
+      });
     } on ArgumentError catch (error) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -139,24 +215,22 @@ class _SellProductPageState extends State<SellProductPage> {
       builder: (context, _) {
         final products = widget.products.products;
         final customers = widget.customers.customers;
-        final selectedProduct = _selectedProductId == null
-            ? null
-            : widget.products.productById(_selectedProductId!);
+        if (_saleRows.isEmpty) {
+          _saleRows.add(_createSaleRow(widget.initialProductId));
+        }
 
-        if (selectedProduct == null && products.isNotEmpty && _selectedProductId == null) {
-          _selectedProductId = products.first.id;
-          _syncProductDefaults();
+        final firstRow = _saleRows.first;
+        if ((firstRow.selectedProductId == null ||
+                widget.products.productById(firstRow.selectedProductId!) ==
+                    null) &&
+            products.isNotEmpty) {
+          firstRow.selectedProductId = products.first.id;
+          _syncSaleRowDefaults(firstRow);
         }
 
         final selectedCustomer = _selectedCustomerId == null
             ? null
             : widget.customers.customerById(_selectedCustomerId!);
-        final quantityMm = double.tryParse(_quantityController.text.trim()) ?? 0;
-        final unitPrice = double.tryParse(_unitPriceController.text.trim()) ?? 0;
-        final discountPercent = double.tryParse(_discountController.text.trim()) ?? 0;
-        final subtotal = unitPrice * quantityMm;
-        final suggestedTotal = subtotal * (1 - (discountPercent / 100));
-        final finalTotal = double.tryParse(_finalTotalController.text.trim()) ?? 0;
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -182,57 +256,172 @@ class _SellProductPageState extends State<SellProductPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    DropdownButtonFormField<String>(
-                                      value: widget.products.productById(_selectedProductId ?? '') == null
-                                          ? null
-                                          : _selectedProductId,
-                                      items: products
-                                          .map(
-                                            (product) => DropdownMenuItem<String>(
-                                              value: product.id,
-                                              child: Text(product.name),
+                                    ...List<Widget>.generate(_saleRows.length, (
+                                      index,
+                                    ) {
+                                      final row = _saleRows[index];
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '${Translator.translate('product')} ${index + 1}',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.titleMedium,
+                                              ),
+                                              if (_saleRows.length > 1)
+                                                IconButton(
+                                                  onPressed: () =>
+                                                      _removeSaleRow(index),
+                                                  icon: const Icon(
+                                                    Icons.delete_outline,
+                                                  ),
+                                                  tooltip: Translator.translate(
+                                                    'remove',
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          DropdownButtonFormField<String>(
+                                            value:
+                                                widget.products.productById(
+                                                      row.selectedProductId ??
+                                                          '',
+                                                    ) ==
+                                                    null
+                                                ? null
+                                                : row.selectedProductId,
+                                            items: products
+                                                .map(
+                                                  (product) =>
+                                                      DropdownMenuItem<String>(
+                                                        value: product.id,
+                                                        child: Text(
+                                                          product.name,
+                                                        ),
+                                                      ),
+                                                )
+                                                .toList(),
+                                            onChanged: (value) {
+                                              setState(() {
+                                                row.selectedProductId = value;
+                                                _syncSaleRowDefaults(row);
+                                              });
+                                            },
+                                            validator: (value) {
+                                              if (value == null ||
+                                                  value.isEmpty) {
+                                                return Translator.translate(
+                                                  'required',
+                                                );
+                                              }
+                                              return null;
+                                            },
+                                            decoration: InputDecoration(
+                                              labelText: Translator.translate(
+                                                'product',
+                                              ),
                                             ),
-                                          )
-                                          .toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedProductId = value;
-                                          _syncProductDefaults();
-                                        });
-                                      },
-                                      decoration: InputDecoration(
-                                        labelText: Translator.translate(
-                                          'product',
+                                          ),
+                                          const SizedBox(height: 16),
+                                          TextFormField(
+                                            controller: row.quantityController,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                            decoration: InputDecoration(
+                                              labelText: Translator.translate(
+                                                'quantity_in_mm',
+                                              ),
+                                            ),
+                                            validator: _positiveDoubleValidator,
+                                            onChanged: (_) => setState(
+                                              () =>
+                                                  _applySuggestedFinalTotalForRow(
+                                                    row,
+                                                  ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          TextFormField(
+                                            controller: row.unitPriceController,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                            decoration: InputDecoration(
+                                              labelText: Translator.translate(
+                                                'unit_price_per_mm',
+                                              ),
+                                            ),
+                                            validator: _positiveDoubleValidator,
+                                            onChanged: (_) => setState(
+                                              () =>
+                                                  _applySuggestedFinalTotalForRow(
+                                                    row,
+                                                  ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          TextFormField(
+                                            controller: row.discountController,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                            decoration: InputDecoration(
+                                              labelText: Translator.translate(
+                                                'discount_percent',
+                                              ),
+                                            ),
+                                            validator: _discountValidator,
+                                            onChanged: (_) => setState(
+                                              () =>
+                                                  _applySuggestedFinalTotalForRow(
+                                                    row,
+                                                  ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          TextFormField(
+                                            controller:
+                                                row.finalTotalController,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                            decoration: InputDecoration(
+                                              labelText: Translator.translate(
+                                                'final_price',
+                                              ),
+                                            ),
+                                            validator: _positiveDoubleValidator,
+                                            onChanged: (_) => setState(() {}),
+                                          ),
+                                          const SizedBox(height: 20),
+                                        ],
+                                      );
+                                    }),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: _addSaleRow,
+                                          icon: const Icon(Icons.add),
+                                          label: Text(
+                                            Translator.translate('add_product'),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 16),
-                                    TextFormField(
-                                      controller: _quantityController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: InputDecoration(
-                                        labelText: Translator.translate(
-                                          'quantity_in_mm',
-                                        ),
-                                      ),
-                                      validator: _positiveDoubleValidator,
-                                      onChanged: (_) => setState(_applySuggestedFinalTotal),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    TextFormField(
-                                      controller: _unitPriceController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: InputDecoration(
-                                        labelText: Translator.translate(
-                                          'unit_price_per_mm',
-                                        ),
-                                      ),
-                                      validator: _positiveDoubleValidator,
-                                      onChanged: (_) => setState(_applySuggestedFinalTotal),
-                                    ),
-                                    const SizedBox(height: 16),
+                                    const Divider(height: 36),
                                     DropdownButtonFormField<String>(
                                       value: widget.customers.customerById(_selectedCustomerId ?? '') == null
                                           ? null
@@ -264,7 +453,6 @@ class _SellProductPageState extends State<SellProductPage> {
                                                 ? null
                                                 : widget.customers.customerById(_selectedCustomerId!),
                                           );
-                                          _applySuggestedFinalTotal();
                                         });
                                       },
                                       decoration: InputDecoration(
@@ -274,58 +462,56 @@ class _SellProductPageState extends State<SellProductPage> {
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    TextFormField(
-                                      controller: _discountController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: InputDecoration(
-                                        labelText: Translator.translate(
-                                          'discount_percent',
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed:
+                                              _applySuggestedFinalTotalForAllRows,
+                                          icon: const Icon(Icons.refresh),
+                                          label: Text(
+                                            Translator.translate(
+                                              'use_suggested_total',
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      validator: _discountValidator,
-                                      onChanged: (_) => setState(_applySuggestedFinalTotal),
+                                        Text(
+                                          '${_saleRows.length} ${Translator.translate('product')}',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge,
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 16),
-                                    TextFormField(
-                                      controller: _finalTotalController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: InputDecoration(
-                                        labelText: Translator.translate(
-                                          'final_price',
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF7F2E9),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(0xFFE5DCCF),
                                         ),
                                       ),
-                                      validator: _positiveDoubleValidator,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    TextButton.icon(
-                                      onPressed: () => setState(_applySuggestedFinalTotal),
-                                      icon: const Icon(Icons.refresh),
-                                      label: Text(
-                                        Translator.translate(
-                                          'use_suggested_total',
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${Translator.translate('total')}: ${formatCurrency(_totalOrderValue)}',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.titleMedium,
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            '${Translator.translate('customer')}: ${selectedCustomer == null ? Translator.translate('regular_customer') : '${selectedCustomer.customerId} - ${selectedCustomer.name}'}',
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(height: 20),
-                                    if (selectedProduct != null)
-                                      _SalePreview(
-                                        productName: selectedProduct.name,
-                                        stockLeft: formatMillimeters(selectedProduct.quantityMm),
-                                        saleCount: widget.products.saleCount,
-                                        unitPrice: formatCurrency(unitPrice),
-                                        customerLabel: selectedCustomer == null
-                                            ? Translator.translate(
-                                                'regular_customer',
-                                              )
-                                            : '${selectedCustomer.customerId} - ${selectedCustomer.name}',
-                                        subtotal: formatCurrency(subtotal),
-                                        discount: formatDiscount(discountPercent),
-                                        suggestedTotal: formatCurrency(suggestedTotal),
-                                        finalTotal: formatCurrency(finalTotal),
-                                      ),
                                     const SizedBox(height: 20),
                                     SizedBox(
                                       width: double.infinity,
@@ -509,6 +695,29 @@ class _SellEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(child: Text(Translator.translate('sell_empty_state')),
     );
+  }
+}
+
+class _SaleRow {
+  _SaleRow({
+    this.selectedProductId,
+    required this.quantityController,
+    required this.unitPriceController,
+    required this.discountController,
+    required this.finalTotalController,
+  });
+
+  String? selectedProductId;
+  final TextEditingController quantityController;
+  final TextEditingController unitPriceController;
+  final TextEditingController discountController;
+  final TextEditingController finalTotalController;
+
+  void dispose() {
+    quantityController.dispose();
+    unitPriceController.dispose();
+    discountController.dispose();
+    finalTotalController.dispose();
   }
 }
 
