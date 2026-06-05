@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../core/utils/formatters.dart';
 import '../core/utils/translator.dart';
@@ -32,9 +32,7 @@ class _CustomersPageState extends State<CustomersPage> {
       builder: (context) => _CustomerEditor(customer: customer),
     );
 
-    if (result == null) {
-      return;
-    }
+    if (result == null) return;
 
     if (customer == null) {
       widget.customers.addCustomer(result);
@@ -59,6 +57,7 @@ class _CustomersPageState extends State<CustomersPage> {
             child: Text(Translator.translate('cancel')),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(Translator.translate('delete')),
           ),
@@ -96,11 +95,7 @@ class _CustomersPageState extends State<CustomersPage> {
               const SizedBox(height: 20),
               TextField(
                 controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _query = value;
-                  });
-                },
+                onChanged: (value) => setState(() => _query = value),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
                   hintText: Translator.translate('search_hint'),
@@ -109,47 +104,26 @@ class _CustomersPageState extends State<CustomersPage> {
               const SizedBox(height: 20),
               Expanded(
                 child: !hasCustomers
-                    ? Center(
-                        child: Text(
-                          Translator.translate('no_special_customers_yet'),
-                        ),
+                    ? _EmptyState(
+                        icon: Icons.people_outline,
+                        title: Translator.translate('no_special_customers_yet'),
+                        description: '',
+                      )
+                    : customers.isEmpty
+                    ? _EmptyState(
+                        icon: Icons.search_off,
+                        title: Translator.translate('no_customers_found'),
+                        description: Translator.translate('no_customers_found_description'),
                       )
                     : ListView.separated(
                         itemCount: customers.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final customer = customers[index];
-                          return Card(
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(18),
-                              title: Text('${customer.customerId} - ${customer.name}'),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text('Phone: ${customer.phone}'),
-                                    Text(
-                                      'Discount: ${formatDiscount(customer.discountPercent)}',
-                                    ),
-                                    if (customer.notes.isNotEmpty) Text(customer.notes),
-                                  ],
-                                ),
-                              ),
-                              trailing: Wrap(
-                                spacing: 8,
-                                children: <Widget>[
-                                  IconButton(
-                                    onPressed: () => _openEditor(customer),
-                                    icon: const Icon(Icons.edit_outlined),
-                                  ),
-                                  IconButton(
-                                    onPressed: () => _deleteCustomer(customer),
-                                    icon: const Icon(Icons.delete_outline),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          return _CustomerTile(
+                            customer: customer,
+                            onEdit: () => _openEditor(customer),
+                            onDelete: () => _deleteCustomer(customer),
                           );
                         },
                       ),
@@ -158,6 +132,210 @@ class _CustomersPageState extends State<CustomersPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _CustomerTile extends StatelessWidget {
+  const _CustomerTile({
+    required this.customer,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Customer customer;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: <Color>[Color(0xFF18534F), Color(0xFF2A7A6F)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    '${customer.customerId}  •  ${customer.name}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF173531),
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: <Widget>[
+                      _InfoChip(
+                        icon: Icons.phone_outlined,
+                        label: customer.phone,
+                        color: const Color(0xFF3D6B8C),
+                        background: const Color(0xFFE3EEF5),
+                      ),
+                      _InfoChip(
+                        icon: Icons.local_offer_outlined,
+                        label: formatDiscount(customer.discountPercent),
+                        color: const Color(0xFF8A5A24),
+                        background: const Color(0xFFF5EDE0),
+                      ),
+                    ],
+                  ),
+                  if (customer.notes.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 6),
+                    Text(
+                      customer.notes,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF5B635E),
+                          ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Column(
+              children: <Widget>[
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: Translator.translate('edit'),
+                  style: IconButton.styleFrom(
+                    foregroundColor: const Color(0xFF18534F),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: Translator.translate('delete'),
+                  style: IconButton.styleFrom(
+                    foregroundColor: Colors.red.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6EFE8),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Icon(icon, size: 34, color: const Color(0xFF18534F)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF173531),
+                  ),
+            ),
+            if (description.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF5A625D),
+                    ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -204,9 +382,7 @@ class _CustomerEditorState extends State<_CustomerEditor> {
   }
 
   void _submit() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     Navigator.of(context).pop(
       CustomerDraft(
@@ -227,8 +403,12 @@ class _CustomerEditorState extends State<_CustomerEditor> {
             ? Translator.translate('add_customer_dialog_title')
             : Translator.translate('edit_customer'),
       ),
-      content: SizedBox(
-        width: 460,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width > 500
+              ? 460
+              : MediaQuery.sizeOf(context).width * 0.85,
+        ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(

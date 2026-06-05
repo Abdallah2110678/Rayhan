@@ -17,6 +17,23 @@ abstract final class AppTheme {
         elevation: 0,
         centerTitle: false,
       ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFEDE5D8)),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFFEDE5D8),
+        space: 1,
+        thickness: 1,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,

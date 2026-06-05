@@ -138,10 +138,11 @@ class _AddProductPageState extends State<AddProductPage> {
                                 validator: _requiredValidator,
                               ),
                               const SizedBox(height: 16),
-                              Row(
-                                children: <Widget>[
-                                  Expanded(
-                                    child: Column(
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final useRow = constraints.maxWidth >= 400;
+                                  final fields = <Widget>[
+                                    Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: <Widget>[
@@ -160,10 +161,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
+                                    Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: <Widget>[
@@ -182,8 +180,23 @@ class _AddProductPageState extends State<AddProductPage> {
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  ];
+                                  return useRow
+                                      ? Row(
+                                          children: <Widget>[
+                                            Expanded(child: fields[0]),
+                                            const SizedBox(width: 16),
+                                            Expanded(child: fields[1]),
+                                          ],
+                                        )
+                                      : Column(
+                                          children: <Widget>[
+                                            fields[0],
+                                            const SizedBox(height: 16),
+                                            fields[1],
+                                          ],
+                                        );
+                                },
                               ),
                               const SizedBox(height: 16),
                               _FormLabel(

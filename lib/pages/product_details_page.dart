@@ -157,6 +157,8 @@ class ProductDetailsPage extends StatelessWidget {
                                                 Colors.red.shade700,
                                           ),
                                           onPressed: () async {
+                                            final navigator = Navigator.of(context);
+                                            final messenger = ScaffoldMessenger.of(context);
                                             final shouldDelete =
                                                 await showDialog<bool>(
                                                   context: context,
@@ -200,10 +202,8 @@ class ProductDetailsPage extends StatelessWidget {
 
                                             if (shouldDelete == true) {
                                               catalog.removeProduct(product.id);
-                                              Navigator.of(context).pop();
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                              navigator.pop();
+                                              messenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                     Translator.translate(
@@ -267,28 +267,32 @@ class _MetaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 190,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F2E9),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5DCCF)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(label),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF173531),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          width: constraints.maxWidth.clamp(0.0, 190.0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F2E9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE5DCCF)),
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(label),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF173531),
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

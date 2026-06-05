@@ -136,7 +136,7 @@ class _OverviewPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.88),
+        color: Colors.white.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFE7DDCF)),
       ),

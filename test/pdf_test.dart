@@ -1,9 +1,5 @@
-import 'dart:io';
-
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rehana/main.dart';
 import 'package:rehana/models/expense_record.dart';
 import 'package:rehana/models/product.dart';
 import 'package:rehana/models/sale_record.dart';
@@ -13,7 +9,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('PDF generation test', () async {
-    // Create dummy data
     final products = [
       Product(
         id: '1',
@@ -56,18 +51,15 @@ void main() {
     final exporter = ReportExporter();
 
     try {
-      final path = await exporter.exportSalesReport(
+      await exporter.exportSalesReport(
         products: products,
         sales: sales,
         expenses: expenses,
         from: from,
         to: to,
       );
-      print('PDF generated successfully at: $path');
     } catch (error, stackTrace) {
-      print('PDF generation failed: $error');
-      print('Stack trace: $stackTrace');
-      fail('PDF generation failed: $error');
+      fail('PDF generation failed: $error\n$stackTrace');
     }
   });
 }

@@ -20,12 +20,14 @@ class RayhanShell extends StatefulWidget {
     required this.customers,
     required this.expenses,
     required this.onLogout,
+    required this.onLocaleChanged,
   });
 
   final ProductCatalogController products;
   final CustomerController customers;
   final ExpenseController expenses;
   final VoidCallback onLogout;
+  final VoidCallback onLocaleChanged;
 
   @override
   State<RayhanShell> createState() => _RayhanShellState();
@@ -115,6 +117,7 @@ class _RayhanShellState extends State<RayhanShell> {
                           setState(() {
                             Translator.toggleLocale();
                           });
+                          widget.onLocaleChanged();
                         },
                       ),
                       AnimatedBuilder(
@@ -133,6 +136,7 @@ class _RayhanShellState extends State<RayhanShell> {
                                 children: [
                                   IconButton(
                                     onPressed: () async {
+                                      final messenger = ScaffoldMessenger.of(context);
                                       final selected = await showMenu<String>(
                                         context: context,
                                         position: const RelativeRect.fromLTRB(
@@ -173,7 +177,7 @@ class _RayhanShellState extends State<RayhanShell> {
                                             .firstWhere((p) => p.id == selected)
                                             .name;
 
-                                        ScaffoldMessenger.of(context)
+                                        messenger
                                           ..hideCurrentSnackBar()
                                           ..showSnackBar(
                                             SnackBar(
@@ -221,11 +225,13 @@ class _RayhanShellState extends State<RayhanShell> {
                                     ),
                                 ],
                               ),
-                              const SizedBox(width: 12),
-                              _ShellSummary(
-                                productCount: widget.products.productCount,
-                                customerCount: widget.customers.customerCount,
-                              ),
+                              if (MediaQuery.sizeOf(context).width >= 600) ...[
+                                const SizedBox(width: 12),
+                                _ShellSummary(
+                                  productCount: widget.products.productCount,
+                                  customerCount: widget.customers.customerCount,
+                                ),
+                              ],
                             ],
                           );
                         },
@@ -254,7 +260,7 @@ class _RayhanShellState extends State<RayhanShell> {
                               selectedIndex: _currentIndex,
                               labelType: NavigationRailLabelType.all,
                               minWidth: 96,
-                              backgroundColor: Colors.white.withOpacity(0.75),
+                              backgroundColor: Colors.white.withValues(alpha: 0.75),
                               onDestinationSelected: (value) {
                                 setState(() {
                                   _currentIndex = value;
@@ -337,7 +343,7 @@ class _ShellSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.86),
+        color: Colors.white.withValues(alpha: 0.86),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFE6DDCF)),
       ),

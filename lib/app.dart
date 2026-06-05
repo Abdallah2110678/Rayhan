@@ -142,8 +142,9 @@ class _RayhanAppState extends State<RayhanApp> {
               ? RayhanShell(
                   products: _products,
                   customers: _customers,
-              expenses: _expenses,
+                  expenses: _expenses,
                   onLogout: _logout,
+                  onLocaleChanged: () => setState(() {}),
                 )
               : LoginPage(onLogin: _login),
       onGenerateRoute: _onGenerateRoute,

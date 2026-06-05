@@ -22,6 +22,27 @@ class ExpenseController extends ChangeNotifier {
     };
   }
 
+  ({int added, int duplicates}) mergeFromJson(Map<String, dynamic>? json) {
+    final existingIds = {for (final e in _expenses) e.id};
+
+    final incoming = ((json?['expenses'] as List<dynamic>?) ?? <dynamic>[])
+        .map((item) => ExpenseRecord.fromJson(item as Map<String, dynamic>))
+        .toList();
+
+    int added = 0, duplicates = 0;
+    for (final expense in incoming) {
+      if (existingIds.contains(expense.id)) {
+        duplicates++;
+      } else {
+        _expenses.add(expense);
+        added++;
+      }
+    }
+
+    if (added > 0) notifyListeners();
+    return (added: added, duplicates: duplicates);
+  }
+
   void restoreFromJson(Map<String, dynamic>? json) {
     _expenses
       ..clear()
@@ -48,6 +69,23 @@ class ExpenseController extends ChangeNotifier {
 
   void removeExpense(String expenseId) {
     _expenses.removeWhere((expense) => expense.id == expenseId);
+    notifyListeners();
+  }
+
+  void updateExpense(
+    String id,
+    DateTime date,
+    double amount,
+    String reason,
+  ) {
+    final index = _expenses.indexWhere((e) => e.id == id);
+    if (index == -1) return;
+    _expenses[index] = ExpenseRecord(
+      id: id,
+      date: date,
+      amount: amount,
+      reason: reason,
+    );
     notifyListeners();
   }
 }

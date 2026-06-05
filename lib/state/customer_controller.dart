@@ -20,6 +20,27 @@ class CustomerController extends ChangeNotifier {
     };
   }
 
+  ({int added, int duplicates}) mergeFromJson(Map<String, dynamic>? json) {
+    final existingIds = {for (final c in _customers) c.id};
+
+    final incoming = ((json?['customers'] as List<dynamic>?) ?? <dynamic>[])
+        .map((item) => Customer.fromJson(item as Map<String, dynamic>))
+        .toList();
+
+    int added = 0, duplicates = 0;
+    for (final customer in incoming) {
+      if (existingIds.contains(customer.id)) {
+        duplicates++;
+      } else {
+        _customers.add(customer);
+        added++;
+      }
+    }
+
+    if (added > 0) notifyListeners();
+    return (added: added, duplicates: duplicates);
+  }
+
   void restoreFromJson(Map<String, dynamic>? json) {
     _customers
       ..clear()

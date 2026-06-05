@@ -289,7 +289,7 @@ class _SellProductPageState extends State<SellProductPage> {
                                           ),
                                           const SizedBox(height: 12),
                                           DropdownButtonFormField<String>(
-                                            value:
+                                            initialValue:
                                                 widget.products.productById(
                                                       row.selectedProductId ??
                                                           '',
@@ -423,7 +423,7 @@ class _SellProductPageState extends State<SellProductPage> {
                                     ),
                                     const Divider(height: 36),
                                     DropdownButtonFormField<String>(
-                                      value: widget.customers.customerById(_selectedCustomerId ?? '') == null
+                                      initialValue: widget.customers.customerById(_selectedCustomerId ?? '') == null
                                           ? null
                                           : _selectedCustomerId,
                                       items: <DropdownMenuItem<String>>[
@@ -541,63 +541,6 @@ class _SellProductPageState extends State<SellProductPage> {
   }
 }
 
-class _SalePreview extends StatelessWidget {
-  const _SalePreview({
-    required this.productName,
-    required this.stockLeft,
-    required this.saleCount,
-    required this.unitPrice,
-    required this.customerLabel,
-    required this.subtotal,
-    required this.discount,
-    required this.suggestedTotal,
-    required this.finalTotal,
-  });
-
-  final String productName;
-  final String stockLeft;
-  final int saleCount;
-  final String unitPrice;
-  final String customerLabel;
-  final String subtotal;
-  final String discount;
-  final String suggestedTotal;
-  final String finalTotal;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F2E9),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE5DCCF)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(productName, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text('${Translator.translate('current_stock')}: $stockLeft'),
-          Text('${Translator.translate('saved_sales')}: $saleCount'),
-          Text('${Translator.translate('unit_price_per_mm')}: $unitPrice'),
-          Text('${Translator.translate('customer')}: $customerLabel'),
-          Text('${Translator.translate('subtotal')}: $subtotal'),
-          Text('${Translator.translate('discount')}: $discount'),
-          Text('${Translator.translate('suggested_total')}: $suggestedTotal'),
-          const SizedBox(height: 8),
-          Text(
-            '${Translator.translate('final_total')}: $finalTotal',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _SalesHistorySection extends StatelessWidget {
   const _SalesHistorySection({required this.sales});

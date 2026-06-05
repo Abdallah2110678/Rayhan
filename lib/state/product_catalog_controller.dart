@@ -41,6 +41,61 @@ class ProductCatalogController extends ChangeNotifier {
     };
   }
 
+  ({
+    int productsAdded,
+    int productsDuplicate,
+    int salesAdded,
+    int salesDuplicate,
+  }) mergeFromJson(Map<String, dynamic>? json) {
+    final existingProductIds = {for (final p in _products) p.id};
+    final existingSaleIds = {for (final s in _sales) s.id};
+
+    final incomingProducts =
+        ((json?['products'] as List<dynamic>?) ?? <dynamic>[])
+            .map((item) => Product.fromJson(item as Map<String, dynamic>))
+            .toList();
+
+    final incomingSales = ((json?['sales'] as List<dynamic>?) ?? <dynamic>[])
+        .map((item) => SaleRecord.fromJson(item as Map<String, dynamic>))
+        .toList();
+
+    int productsAdded = 0,
+        productsDuplicate = 0,
+        salesAdded = 0,
+        salesDuplicate = 0;
+
+    for (final product in incomingProducts) {
+      if (existingProductIds.contains(product.id)) {
+        productsDuplicate++;
+      } else {
+        _products.add(product);
+        _totalPurchaseValue += product.purchasePrice;
+        _totalPurchasedQuantityMm += product.initialQuantityMm;
+        productsAdded++;
+      }
+    }
+
+    for (final sale in incomingSales) {
+      if (existingSaleIds.contains(sale.id)) {
+        salesDuplicate++;
+      } else {
+        _sales.add(sale);
+        salesAdded++;
+      }
+    }
+
+    if (productsAdded > 0 || salesAdded > 0) {
+      notifyListeners();
+    }
+
+    return (
+      productsAdded: productsAdded,
+      productsDuplicate: productsDuplicate,
+      salesAdded: salesAdded,
+      salesDuplicate: salesDuplicate,
+    );
+  }
+
   void restoreFromJson(Map<String, dynamic>? json) {
     _products
       ..clear()

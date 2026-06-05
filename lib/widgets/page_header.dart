@@ -35,6 +35,7 @@ class PageHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
+              if (subtitle.isNotEmpty)
               Text(
                 subtitle,
                 style: textTheme.bodyLarge?.copyWith(
@@ -44,7 +45,7 @@ class PageHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }

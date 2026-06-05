@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../core/utils/formatters.dart';
 import '../core/utils/translator.dart';
@@ -149,13 +148,14 @@ class _DashboardPageState extends State<DashboardPage> {
           actions: [
             TextButton(
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
                 try {
                   final file = File(path);
                   if (await file.exists()) {
                     final result = await OpenFile.open(file.path);
                     if (result.type != ResultType.done) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                      messenger.showSnackBar(
+                        const SnackBar(
                           content: Text(
                             'Could not open PDF automatically. Use the file path above in a file manager.',
                           ),
@@ -163,14 +163,14 @@ class _DashboardPageState extends State<DashboardPage> {
                       );
                     }
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('PDF not found at saved path.')),
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('PDF not found at saved path.')),
                     );
                   }
                 } catch (e) {
                   debugPrint('Could not open file: $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                  messenger.showSnackBar(
+                    const SnackBar(
                       content: Text(
                         'Could not open PDF automatically. Please check path in dialog and open manually.',
                       ),
@@ -218,23 +218,23 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     try {
-      final path = await _dataPorter.exportAllData(
+      final savedPath = await _dataPorter.exportAllData(
         products: widget.products,
         customers: widget.customers,
         expenses: widget.expenses,
       );
-
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              Translator.translate('all_data_exported', {'path': path}),
+      if (savedPath != null) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                Translator.translate('all_data_exported', {'path': savedPath}),
+              ),
             ),
-          ),
-        );
+          );
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -242,7 +242,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ..showSnackBar(
           SnackBar(
             content: Text(
-              Translator.translate('import_data_failed', {
+              Translator.translate('pdf_report_error', {
                 'error': error.toString(),
               }),
             ),
@@ -263,38 +263,23 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final files =
-          Directory(directory.path)
-              .listSync()
-              .whereType<File>()
-              .where((file) => file.path.endsWith('.json'))
-              .toList()
-            ..sort((b, a) => a.path.compareTo(b.path));
-
-      if (files.isEmpty) {
-        throw Exception('No export file found in app folder');
-      }
-
-      final path = files.first.path; // latest by name sorting
-      await _dataPorter.importAllData(
+      final result = await _dataPorter.importAllData(
         products: widget.products,
         customers: widget.customers,
         expenses: widget.expenses,
-        filePath: path,
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              Translator.translate('import_data_success', {'path': path}),
-            ),
-          ),
-        );
+      if (result == null) {
+        // user cancelled the file picker
+        return;
+      }
+
+      showDialog<void>(
+        context: context,
+        builder: (context) => _ImportResultDialog(result: result),
+      );
     } catch (error) {
       if (!mounted) return;
 
@@ -387,7 +372,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
                         children: <Widget>[
                           FilledButton.icon(
                             onPressed: _isDataExporting ? null : _exportAllData,
@@ -406,7 +393,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   : Translator.translate('export_all_data'),
                             ),
                           ),
-                          const SizedBox(width: 12),
                           FilledButton.icon(
                             onPressed: _isDataImporting ? null : _importAllData,
                             icon: _isDataImporting
@@ -713,49 +699,53 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 260,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width: constraints.maxWidth.clamp(0.0, 260.0),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    child: Icon(icon, color: color),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF173531),
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    note,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF5B635E),
+                        ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF173531),
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                note,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF5B635E),
-                    ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -773,37 +763,148 @@ class _MiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 220,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width: constraints.maxWidth.clamp(0.0, 220.0),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Icon(icon, size: 18, color: const Color(0xFF5B635E)),
-                  const SizedBox(width: 8),
+                  Row(
+                    children: <Widget>[
+                      Icon(icon, size: 18, color: const Color(0xFF5B635E)),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF5B635E),
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF5B635E),
+                    value,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF173531),
                         ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF173531),
-                    ),
-              ),
-            ],
+            ),
           ),
+        );
+      },
+    );
+  }
+}
+
+
+class _ImportResultDialog extends StatelessWidget {
+  const _ImportResultDialog({required this.result});
+
+  final ImportResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(Translator.translate('import_complete')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (!result.hasAnyNew && result.totalDuplicates == 0)
+            Text(Translator.translate('import_no_new_data'))
+          else ...<Widget>[
+            Text(
+              Translator.translate('import_summary_header'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF5B635E),
+                  ),
+            ),
+            const SizedBox(height: 12),
+            _ResultRow(
+              label: Translator.translate('products'),
+              added: result.productsAdded,
+              duplicates: result.productsDuplicate,
+            ),
+            _ResultRow(
+              label: Translator.translate('sales_history'),
+              added: result.salesAdded,
+              duplicates: result.salesDuplicate,
+            ),
+            _ResultRow(
+              label: Translator.translate('customers'),
+              added: result.customersAdded,
+              duplicates: result.customersDuplicate,
+            ),
+            _ResultRow(
+              label: Translator.translate('finance'),
+              added: result.expensesAdded,
+              duplicates: result.expensesDuplicate,
+            ),
+          ],
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(Translator.translate('ok')),
         ),
+      ],
+    );
+  }
+}
+
+class _ResultRow extends StatelessWidget {
+  const _ResultRow({
+    required this.label,
+    required this.added,
+    required this.duplicates,
+  });
+
+  final String label;
+  final int added;
+  final int duplicates;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(
+            '+$added',
+            style: TextStyle(
+              color: added > 0
+                  ? Colors.green.shade700
+                  : const Color(0xFF5B635E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (duplicates > 0) ...<Widget>[
+            const SizedBox(width: 8),
+            Text(
+              Translator.translate('import_skipped', {'n': '$duplicates'}),
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
