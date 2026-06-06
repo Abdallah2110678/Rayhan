@@ -1,4 +1,4 @@
-﻿import 'dart:collection';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
@@ -10,8 +10,16 @@ import '../models/sale_record.dart';
 class ProductCatalogController extends ChangeNotifier {
   final List<Product> _products = <Product>[];
   final List<SaleRecord> _sales = <SaleRecord>[];
+
+  // HashMap index for O(1) lookups instead of O(n) linear scan.
+  final Map<String, Product> _productIndex = <String, Product>{};
+
+  // Running totals maintained incrementally — no fold() on every access.
   double _totalPurchaseValue = 0;
   double _totalPurchasedQuantityMm = 0;
+  double _totalSalesValue = 0;
+  double _totalSoldQuantityMm = 0;
+  double _totalQuantityMm = 0;
 
   UnmodifiableListView<Product> get products => UnmodifiableListView(_products);
   UnmodifiableListView<SaleRecord> get sales => UnmodifiableListView(_sales);
@@ -19,23 +27,20 @@ class ProductCatalogController extends ChangeNotifier {
   int get productCount => _products.length;
   int get saleCount => _sales.length;
   double get totalPurchaseValue => _totalPurchaseValue;
-  double get totalSalesValue =>
-      _sales.fold<double>(0, (sum, sale) => sum + sale.finalTotal);
   double get totalPurchasedQuantityMm => _totalPurchasedQuantityMm;
-  double get totalSoldQuantityMm =>
-      _sales.fold<double>(0, (sum, sale) => sum + sale.quantityMm);
-  double get netRevenue => totalSalesValue - _totalPurchaseValue;
+  double get totalSalesValue => _totalSalesValue;
+  double get totalSoldQuantityMm => _totalSoldQuantityMm;
+  double get totalQuantityMm => _totalQuantityMm;
+  double get netRevenue => _totalSalesValue - _totalPurchaseValue;
 
-  double get totalQuantityMm =>
-      _products.fold<double>(0, (sum, product) => sum + product.quantityMm);
-
+  // stockValue depends on per-product ratios; computed on demand (products list is short).
   double get totalInventoryValue =>
-      _products.fold<double>(0, (sum, product) => sum + product.stockValue);
+      _products.fold<double>(0, (sum, p) => sum + p.stockValue);
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'products': _products.map((product) => product.toJson()).toList(),
-      'sales': _sales.map((sale) => sale.toJson()).toList(),
+      'products': _products.map((p) => p.toJson()).toList(),
+      'sales': _sales.map((s) => s.toJson()).toList(),
       'totalPurchaseValue': _totalPurchaseValue,
       'totalPurchasedQuantityMm': _totalPurchasedQuantityMm,
     };
@@ -69,8 +74,10 @@ class ProductCatalogController extends ChangeNotifier {
         productsDuplicate++;
       } else {
         _products.add(product);
+        _productIndex[product.id] = product;
         _totalPurchaseValue += product.purchasePrice;
         _totalPurchasedQuantityMm += product.initialQuantityMm;
+        _totalQuantityMm += product.quantityMm;
         productsAdded++;
       }
     }
@@ -80,13 +87,13 @@ class ProductCatalogController extends ChangeNotifier {
         salesDuplicate++;
       } else {
         _sales.add(sale);
+        _totalSalesValue += sale.finalTotal;
+        _totalSoldQuantityMm += sale.quantityMm;
         salesAdded++;
       }
     }
 
-    if (productsAdded > 0 || salesAdded > 0) {
-      notifyListeners();
-    }
+    if (productsAdded > 0 || salesAdded > 0) notifyListeners();
 
     return (
       productsAdded: productsAdded,
@@ -100,20 +107,31 @@ class ProductCatalogController extends ChangeNotifier {
     _products
       ..clear()
       ..addAll(
-        ((json?['products'] as List<dynamic>?) ?? <dynamic>[]).map(
-          (item) => Product.fromJson(item as Map<String, dynamic>),
-        ),
+        ((json?['products'] as List<dynamic>?) ?? <dynamic>[])
+            .map((item) => Product.fromJson(item as Map<String, dynamic>)),
       );
     _sales
       ..clear()
       ..addAll(
-        ((json?['sales'] as List<dynamic>?) ?? <dynamic>[]).map(
-          (item) => SaleRecord.fromJson(item as Map<String, dynamic>),
-        ),
+        ((json?['sales'] as List<dynamic>?) ?? <dynamic>[])
+            .map((item) => SaleRecord.fromJson(item as Map<String, dynamic>)),
       );
-    _totalPurchaseValue = ((json?['totalPurchaseValue'] as num?) ?? 0).toDouble();
+    _totalPurchaseValue =
+        ((json?['totalPurchaseValue'] as num?) ?? 0).toDouble();
     _totalPurchasedQuantityMm =
         ((json?['totalPurchasedQuantityMm'] as num?) ?? 0).toDouble();
+
+    // Rebuild index and running totals from scratch.
+    _productIndex
+      ..clear()
+      ..addEntries(_products.map((p) => MapEntry(p.id, p)));
+    _totalSalesValue =
+        _sales.fold<double>(0, (sum, s) => sum + s.finalTotal);
+    _totalSoldQuantityMm =
+        _sales.fold<double>(0, (sum, s) => sum + s.quantityMm);
+    _totalQuantityMm =
+        _products.fold<double>(0, (sum, p) => sum + p.quantityMm);
+
     notifyListeners();
   }
 
@@ -128,56 +146,51 @@ class ProductCatalogController extends ChangeNotifier {
     );
 
     _products.insert(0, product);
+    _productIndex[product.id] = product;
     _totalPurchaseValue += product.purchasePrice;
     _totalPurchasedQuantityMm += product.quantityMm;
+    _totalQuantityMm += product.quantityMm;
     notifyListeners();
     return product;
   }
 
   void removeProduct(String id) {
-    final index = _products.indexWhere((product) => product.id == id);
-    if (index == -1) {
-      throw ArgumentError('Product not found.');
-    }
+    final index = _products.indexWhere((p) => p.id == id);
+    if (index == -1) throw ArgumentError('Product not found.');
     final product = _products.removeAt(index);
+    _productIndex.remove(id);
     _totalPurchaseValue -= product.purchasePrice;
-    _totalPurchasedQuantityMm -= product.quantityMm;
+    _totalPurchasedQuantityMm -= product.initialQuantityMm;
+    _totalQuantityMm -= product.quantityMm;
     notifyListeners();
   }
 
   void updateProduct(String id, ProductDraft draft) {
-    final index = _products.indexWhere((product) => product.id == id);
-    if (index == -1) {
-      throw ArgumentError('Product not found.');
-    }
-    final oldProduct = _products[index];
-    final newProduct = oldProduct.copyWith(
+    final index = _products.indexWhere((p) => p.id == id);
+    if (index == -1) throw ArgumentError('Product not found.');
+    final old = _products[index];
+    final updated = old.copyWith(
       name: draft.name,
       purchasePrice: draft.purchasePrice,
       sellPrice: draft.sellPrice,
       quantityMm: draft.quantityMm,
       initialQuantityMm: draft.quantityMm,
     );
-    _products[index] = newProduct;
-    _totalPurchaseValue += draft.purchasePrice - oldProduct.purchasePrice;
-    _totalPurchasedQuantityMm +=
-        draft.quantityMm - oldProduct.initialQuantityMm;
+    _products[index] = updated;
+    _productIndex[id] = updated;
+    _totalPurchaseValue += draft.purchasePrice - old.purchasePrice;
+    _totalPurchasedQuantityMm += draft.quantityMm - old.initialQuantityMm;
+    _totalQuantityMm += draft.quantityMm - old.quantityMm;
     notifyListeners();
   }
 
-  Product? productById(String id) {
-    for (final product in _products) {
-      if (product.id == id) {
-        return product;
-      }
-    }
-    return null;
-  }
+  Product? productById(String id) => _productIndex[id];
 
   List<Product> search(String query) {
-    final normalizedQuery = query.trim().toLowerCase();
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return List.unmodifiable(_products);
     return _products
-        .where((product) => product.matches(normalizedQuery))
+        .where((p) => p.matches(q))
         .toList(growable: false);
   }
 
@@ -191,43 +204,36 @@ class ProductCatalogController extends ChangeNotifier {
     String? customerId,
     String? customerName,
   }) {
-    final index = _products.indexWhere((product) => product.id == productId);
-    if (index == -1) {
-      throw ArgumentError('Product not found.');
-    }
+    final index = _products.indexWhere((p) => p.id == productId);
+    if (index == -1) throw ArgumentError('Product not found.');
 
-    final currentProduct = _products[index];
-    if (quantityMm <= 0) {
-      throw ArgumentError('Quantity must be greater than zero.');
-    }
+    final current = _products[index];
+    if (quantityMm <= 0) throw ArgumentError('Quantity must be greater than zero.');
+    if (quantityMm > current.quantityMm) throw ArgumentError('Not enough quantity in stock.');
+    if (finalTotal <= 0) throw ArgumentError('Final price must be greater than zero.');
 
-    if (quantityMm > currentProduct.quantityMm) {
-      throw ArgumentError('Not enough quantity in stock.');
-    }
+    final updated = current.copyWith(quantityMm: current.quantityMm - quantityMm);
+    _products[index] = updated;
+    _productIndex[productId] = updated;
+    _totalQuantityMm -= quantityMm;
 
-    if (finalTotal <= 0) {
-      throw ArgumentError('Final price must be greater than zero.');
-    }
-
-    _products[index] = currentProduct.copyWith(
-      quantityMm: currentProduct.quantityMm - quantityMm,
+    final sale = SaleRecord(
+      id: IdGenerator.sale(),
+      productId: current.id,
+      productName: current.name,
+      quantityMm: quantityMm,
+      unitPrice: unitPrice,
+      discountPercent: discountPercent,
+      subtotal: subtotal,
+      finalTotal: finalTotal,
+      soldAt: DateTime.now(),
+      customerId: customerId,
+      customerName: customerName,
     );
-    _sales.insert(
-      0,
-      SaleRecord(
-        id: IdGenerator.sale(),
-        productId: currentProduct.id,
-        productName: currentProduct.name,
-        quantityMm: quantityMm,
-        unitPrice: unitPrice,
-        discountPercent: discountPercent,
-        subtotal: subtotal,
-        finalTotal: finalTotal,
-        soldAt: DateTime.now(),
-        customerId: customerId,
-        customerName: customerName,
-      ),
-    );
+    _sales.insert(0, sale);
+    _totalSalesValue += finalTotal;
+    _totalSoldQuantityMm += quantityMm;
+
     notifyListeners();
     return finalTotal;
   }
@@ -236,25 +242,21 @@ class ProductCatalogController extends ChangeNotifier {
     final fromDate = DateTime(from.year, from.month, from.day);
     final toDate = DateTime(to.year, to.month, to.day, 23, 59, 59, 999);
     return _sales
-        .where(
-          (sale) => !sale.soldAt.isBefore(fromDate) && !sale.soldAt.isAfter(toDate),
-        )
+        .where((s) => !s.soldAt.isBefore(fromDate) && !s.soldAt.isAfter(toDate))
         .toList(growable: false);
   }
 
   SaleRecord? bestSellingProductBetween(DateTime from, DateTime to) {
-    final filteredSales = salesBetween(from, to);
-    if (filteredSales.isEmpty) {
-      return null;
-    }
+    final filtered = salesBetween(from, to);
+    if (filtered.isEmpty) return null;
 
     final totals = <String, SaleRecord>{};
     final amounts = <String, double>{};
-    for (final sale in filteredSales) {
+    for (final sale in filtered) {
       totals.putIfAbsent(sale.productId, () => sale);
       amounts.update(
         sale.productId,
-        (current) => current + sale.finalTotal,
+        (v) => v + sale.finalTotal,
         ifAbsent: () => sale.finalTotal,
       );
     }
@@ -267,21 +269,14 @@ class ProductCatalogController extends ChangeNotifier {
         bestAmount = entry.value;
       }
     }
-
     return bestId == null ? null : totals[bestId];
   }
 
-  double totalSalesValueBetween(DateTime from, DateTime to) {
-    return salesBetween(from, to).fold<double>(
-      0,
-      (sum, sale) => sum + sale.finalTotal,
-    );
-  }
+  double totalSalesValueBetween(DateTime from, DateTime to) =>
+      salesBetween(from, to)
+          .fold<double>(0, (sum, s) => sum + s.finalTotal);
 
-  double totalSoldQuantityBetween(DateTime from, DateTime to) {
-    return salesBetween(from, to).fold<double>(
-      0,
-      (sum, sale) => sum + sale.quantityMm,
-    );
-  }
+  double totalSoldQuantityBetween(DateTime from, DateTime to) =>
+      salesBetween(from, to)
+          .fold<double>(0, (sum, s) => sum + s.quantityMm);
 }

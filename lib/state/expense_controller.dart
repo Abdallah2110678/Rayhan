@@ -8,13 +8,14 @@ import '../models/expense_record.dart';
 class ExpenseController extends ChangeNotifier {
   final List<ExpenseRecord> _expenses = <ExpenseRecord>[];
 
+  // Running total maintained incrementally — no fold() on every access.
+  double _totalExpenses = 0;
+
   UnmodifiableListView<ExpenseRecord> get expenses =>
       UnmodifiableListView(_expenses);
 
   int get expenseCount => _expenses.length;
-
-  double get totalExpenses =>
-      _expenses.fold<double>(0, (sum, expense) => sum + expense.amount);
+  double get totalExpenses => _totalExpenses;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -35,6 +36,7 @@ class ExpenseController extends ChangeNotifier {
         duplicates++;
       } else {
         _expenses.add(expense);
+        _totalExpenses += expense.amount;
         added++;
       }
     }
@@ -51,24 +53,29 @@ class ExpenseController extends ChangeNotifier {
           (item) => ExpenseRecord.fromJson(item as Map<String, dynamic>),
         ),
       );
+    _totalExpenses = _expenses.fold<double>(0, (sum, e) => sum + e.amount);
     notifyListeners();
   }
 
   ExpenseRecord addExpense(DateTime date, double amount, String reason) {
     final expense = ExpenseRecord(
-      id: IdGenerator.product(),
+      id: IdGenerator.expense(),
       date: date,
       amount: amount,
       reason: reason,
     );
 
     _expenses.insert(0, expense);
+    _totalExpenses += amount;
     notifyListeners();
     return expense;
   }
 
   void removeExpense(String expenseId) {
-    _expenses.removeWhere((expense) => expense.id == expenseId);
+    final index = _expenses.indexWhere((e) => e.id == expenseId);
+    if (index == -1) return;
+    _totalExpenses -= _expenses[index].amount;
+    _expenses.removeAt(index);
     notifyListeners();
   }
 
@@ -80,6 +87,7 @@ class ExpenseController extends ChangeNotifier {
   ) {
     final index = _expenses.indexWhere((e) => e.id == id);
     if (index == -1) return;
+    _totalExpenses += amount - _expenses[index].amount;
     _expenses[index] = ExpenseRecord(
       id: id,
       date: date,

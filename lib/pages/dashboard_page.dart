@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
 
+import '../core/app_constants.dart';
 import '../core/utils/formatters.dart';
 import '../core/utils/translator.dart';
 import '../services/data_porter.dart';
@@ -489,7 +490,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       Builder(
                         builder: (context) {
                           final lowStockProducts = widget.products.products
-                              .where((product) => product.quantityMm <= 110)
+                              .where((product) => product.quantityMm <= AppConstants.lowStockThresholdMm)
                               .toList();
                           return lowStockProducts.isEmpty
                               ? Card(
@@ -588,7 +589,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: product.quantityMm <= 110
+                                              color: product.quantityMm <= AppConstants.lowStockThresholdMm
                                                   ? Colors.red.shade100
                                                   : product.quantityMm <= 200
                                                   ? Colors.orange.shade100
@@ -597,13 +598,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                                   BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              product.quantityMm <= 110
+                                              product.quantityMm <= AppConstants.lowStockThresholdMm
                                                   ? Translator.translate('low')
                                                   : product.quantityMm <= 200
                                                       ? Translator.translate('medium')
                                                       : Translator.translate('healthy'),
                                               style: TextStyle(
-                                                color: product.quantityMm <= 110
+                                                color: product.quantityMm <= AppConstants.lowStockThresholdMm
                                                     ? Colors.red.shade700
                                                     : product.quantityMm <= 200
                                                     ? Colors.orange.shade700

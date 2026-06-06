@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../core/app_constants.dart';
 import '../core/utils/formatters.dart';
 import '../core/utils/translator.dart';
 import '../pages/add_product_page.dart';
@@ -127,7 +128,7 @@ class _RayhanShellState extends State<RayhanShell> {
                         ]),
                         builder: (context, _) {
                           final lowStockItems = widget.products.products
-                              .where((product) => product.quantityMm <= 110)
+                              .where((product) => product.quantityMm <= AppConstants.lowStockThresholdMm)
                               .toList();
 
                           return Row(
@@ -171,11 +172,8 @@ class _RayhanShellState extends State<RayhanShell> {
 
                                       if (selected != null &&
                                           selected.isNotEmpty) {
-                                        final productName = widget
-                                            .products
-                                            .products
-                                            .firstWhere((p) => p.id == selected)
-                                            .name;
+                                        final productName =
+                                            widget.products.productById(selected)?.name ?? selected;
 
                                         messenger
                                           ..hideCurrentSnackBar()

@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/storage/local_store.dart';
@@ -31,6 +33,13 @@ class _RayhanAppState extends State<RayhanApp> {
   bool _isAuthenticated = false;
   bool _isReady = false;
 
+  // Per-controller debounce timers — avoids write storms on rapid changes.
+  Timer? _productsSaveTimer;
+  Timer? _customersSaveTimer;
+  Timer? _expensesSaveTimer;
+
+  static const _debounceDuration = Duration(milliseconds: 500);
+
   @override
   void initState() {
     super.initState();
@@ -39,9 +48,12 @@ class _RayhanAppState extends State<RayhanApp> {
 
   @override
   void dispose() {
-    _products.removeListener(_persistData);
-    _customers.removeListener(_persistData);
-    _expenses.removeListener(_persistData);
+    _productsSaveTimer?.cancel();
+    _customersSaveTimer?.cancel();
+    _expensesSaveTimer?.cancel();
+    _products.removeListener(_onProductsChanged);
+    _customers.removeListener(_onCustomersChanged);
+    _expenses.removeListener(_onExpensesChanged);
     _products.dispose();
     _customers.dispose();
     _expenses.dispose();
@@ -55,9 +67,9 @@ class _RayhanAppState extends State<RayhanApp> {
     _products.restoreFromJson(savedProducts);
     _customers.restoreFromJson(savedCustomers);
     _expenses.restoreFromJson(savedExpenses);
-    _products.addListener(_persistData);
-    _customers.addListener(_persistData);
-    _expenses.addListener(_persistData);
+    _products.addListener(_onProductsChanged);
+    _customers.addListener(_onCustomersChanged);
+    _expenses.addListener(_onExpensesChanged);
 
     if (!mounted) {
       return;
@@ -68,16 +80,28 @@ class _RayhanAppState extends State<RayhanApp> {
     });
   }
 
-  Future<void> _persistData() async {
-    if (!_isReady) {
-      return;
-    }
+  void _onProductsChanged() {
+    if (!_isReady) return;
+    _productsSaveTimer?.cancel();
+    _productsSaveTimer = Timer(_debounceDuration, () {
+      _localStore.saveProducts(_products.toJson());
+    });
+  }
 
-    await Future.wait(<Future<void>>[
-      _localStore.saveProducts(_products.toJson()),
-      _localStore.saveCustomers(_customers.toJson()),
-      _localStore.saveExpenses(_expenses.toJson()),
-    ]);
+  void _onCustomersChanged() {
+    if (!_isReady) return;
+    _customersSaveTimer?.cancel();
+    _customersSaveTimer = Timer(_debounceDuration, () {
+      _localStore.saveCustomers(_customers.toJson());
+    });
+  }
+
+  void _onExpensesChanged() {
+    if (!_isReady) return;
+    _expensesSaveTimer?.cancel();
+    _expensesSaveTimer = Timer(_debounceDuration, () {
+      _localStore.saveExpenses(_expenses.toJson());
+    });
   }
 
   void _login(String username, String password) {
