@@ -7,10 +7,12 @@ import '../pages/add_product_page.dart';
 import '../pages/customers_page.dart';
 import '../pages/dashboard_page.dart';
 import '../pages/finances_page.dart';
+import '../pages/packaging_page.dart';
 import '../pages/products_page.dart';
 import '../pages/sell_product_page.dart';
 import '../state/customer_controller.dart';
 import '../state/expense_controller.dart';
+import '../state/packaging_controller.dart';
 import '../state/product_catalog_controller.dart';
 import '../widgets/brand_mark.dart';
 
@@ -20,6 +22,7 @@ class RayhanShell extends StatefulWidget {
     required this.products,
     required this.customers,
     required this.expenses,
+    required this.packaging,
     required this.onLogout,
     required this.onLocaleChanged,
   });
@@ -27,6 +30,7 @@ class RayhanShell extends StatefulWidget {
   final ProductCatalogController products;
   final CustomerController customers;
   final ExpenseController expenses;
+  final PackagingController packaging;
   final VoidCallback onLogout;
   final VoidCallback onLocaleChanged;
 
@@ -47,9 +51,14 @@ class _RayhanShellState extends State<RayhanShell> {
       ),
       ProductsPage(catalog: widget.products),
       AddProductPage(catalog: widget.products),
-      SellProductPage(products: widget.products, customers: widget.customers),
+      SellProductPage(
+        products: widget.products,
+        customers: widget.customers,
+        packaging: widget.packaging,
+      ),
       CustomersPage(customers: widget.customers),
       FinancesPage(expenses: widget.expenses),
+      PackagingPage(packaging: widget.packaging),
     ];
 
     final destinations = <NavigationDestination>[
@@ -82,6 +91,11 @@ class _RayhanShellState extends State<RayhanShell> {
         icon: const Icon(Icons.account_balance_wallet_outlined),
         selectedIcon: const Icon(Icons.account_balance_wallet),
         label: Translator.translate('finance'),
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.water_drop_outlined),
+        selectedIcon: const Icon(Icons.water_drop),
+        label: Translator.translate('packaging'),
       ),
     ];
 
@@ -294,6 +308,11 @@ class _RayhanShellState extends State<RayhanShell> {
                                   icon: const Icon(Icons.account_balance_wallet_outlined),
                                   selectedIcon: const Icon(Icons.account_balance_wallet),
                                   label: Text(Translator.translate('finance')),
+                                ),
+                                NavigationRailDestination(
+                                  icon: const Icon(Icons.water_drop_outlined),
+                                  selectedIcon: const Icon(Icons.water_drop),
+                                  label: Text(Translator.translate('packaging')),
                                 ),
                               ],
                             ),

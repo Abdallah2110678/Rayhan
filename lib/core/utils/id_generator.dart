@@ -9,4 +9,5 @@ abstract final class IdGenerator {
   static String sale() => _make('sale');
   static String customer() => _make('customer');
   static String expense() => _make('expense');
+  static String packaging() => _make('packaging');
 }

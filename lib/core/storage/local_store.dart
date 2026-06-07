@@ -7,6 +7,7 @@ class LocalStore {
   static const String _productsFileName = 'rayhan_products.json';
   static const String _customersFileName = 'rayhan_customers.json';
   static const String _expensesFileName = 'rayhan_expenses.json';
+  static const String _packagingFileName = 'rayhan_packaging.json';
 
   // Cached to avoid repeated async calls on every read/write.
   Directory? _cachedDirectory;
@@ -14,6 +15,7 @@ class LocalStore {
   Future<Map<String, dynamic>> loadProducts() => _loadFile(_productsFileName);
   Future<Map<String, dynamic>> loadCustomers() => _loadFile(_customersFileName);
   Future<Map<String, dynamic>> loadExpenses() => _loadFile(_expensesFileName);
+  Future<Map<String, dynamic>> loadPackaging() => _loadFile(_packagingFileName);
 
   Future<void> saveProducts(Map<String, dynamic> data) =>
       _saveFile(_productsFileName, data);
@@ -21,6 +23,8 @@ class LocalStore {
       _saveFile(_customersFileName, data);
   Future<void> saveExpenses(Map<String, dynamic> data) =>
       _saveFile(_expensesFileName, data);
+  Future<void> savePackaging(Map<String, dynamic> data) =>
+      _saveFile(_packagingFileName, data);
 
   Future<Map<String, dynamic>> _loadFile(String fileName) async {
     try {

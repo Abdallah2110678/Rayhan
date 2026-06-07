@@ -5,6 +5,7 @@ import '../core/utils/translator.dart';
 import '../models/customer.dart';
 import '../models/sale_record.dart';
 import '../state/customer_controller.dart';
+import '../state/packaging_controller.dart';
 import '../state/product_catalog_controller.dart';
 import '../widgets/page_header.dart';
 
@@ -13,6 +14,7 @@ class SellProductPage extends StatefulWidget {
     super.key,
     required this.products,
     required this.customers,
+    required this.packaging,
     this.initialProductId,
   });
 
@@ -20,6 +22,7 @@ class SellProductPage extends StatefulWidget {
 
   final ProductCatalogController products;
   final CustomerController customers;
+  final PackagingController packaging;
   final String? initialProductId;
 
   @override
@@ -136,6 +139,8 @@ class _SellProductPageState extends State<SellProductPage> {
 
     try {
       double totalSale = 0;
+      final List<String> bottleMessages = <String>[];
+
       for (final row in _saleRows) {
         final productId = row.selectedProductId;
         if (productId == null) {
@@ -159,6 +164,26 @@ class _SellProductPageState extends State<SellProductPage> {
           customerName: customer?.name,
         );
         totalSale += total;
+
+        final deducted = widget.packaging.deductBottle(quantityMm);
+        final sizeLabel = quantityMm % 1 == 0
+            ? quantityMm.toInt().toString()
+            : quantityMm.toString();
+        if (!deducted) {
+          bottleMessages.add(
+            Translator.translate('no_matching_bottle', {'size': sizeLabel}),
+          );
+        } else {
+          final bottle = widget.packaging.bottleBySize(quantityMm);
+          if (bottle != null && bottle.quantity <= 5) {
+            bottleMessages.add(
+              Translator.translate('low_bottle_stock', {
+                'size': sizeLabel,
+                'count': '${bottle.quantity}',
+              }),
+            );
+          }
+        }
       }
 
       final productNames = _saleRows
@@ -169,7 +194,8 @@ class _SellProductPageState extends State<SellProductPage> {
           .whereType<String>()
           .join(', ');
 
-      ScaffoldMessenger.of(context)
+      final messenger = ScaffoldMessenger.of(context);
+      messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
@@ -186,6 +212,17 @@ class _SellProductPageState extends State<SellProductPage> {
             ),
           ),
         );
+
+      if (bottleMessages.isNotEmpty) {
+        Future.delayed(const Duration(milliseconds: 2200), () {
+          if (!mounted) return;
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(content: Text(bottleMessages.join('\n'))),
+            );
+        });
+      }
 
       for (final row in _saleRows) {
         row.quantityController.clear();

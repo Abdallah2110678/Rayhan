@@ -12,6 +12,7 @@ import 'pages/rayhan_shell.dart';
 import 'pages/sell_product_page.dart';
 import 'state/customer_controller.dart';
 import 'state/expense_controller.dart';
+import 'state/packaging_controller.dart';
 import 'state/product_catalog_controller.dart';
 
 class RayhanApp extends StatefulWidget {
@@ -28,6 +29,7 @@ class _RayhanAppState extends State<RayhanApp> {
   final ProductCatalogController _products = ProductCatalogController();
   final CustomerController _customers = CustomerController();
   final ExpenseController _expenses = ExpenseController();
+  final PackagingController _packaging = PackagingController();
   final LocalStore _localStore = LocalStore();
 
   bool _isAuthenticated = false;
@@ -37,6 +39,7 @@ class _RayhanAppState extends State<RayhanApp> {
   Timer? _productsSaveTimer;
   Timer? _customersSaveTimer;
   Timer? _expensesSaveTimer;
+  Timer? _packagingSaveTimer;
 
   static const _debounceDuration = Duration(milliseconds: 500);
 
@@ -51,12 +54,15 @@ class _RayhanAppState extends State<RayhanApp> {
     _productsSaveTimer?.cancel();
     _customersSaveTimer?.cancel();
     _expensesSaveTimer?.cancel();
+    _packagingSaveTimer?.cancel();
     _products.removeListener(_onProductsChanged);
     _customers.removeListener(_onCustomersChanged);
     _expenses.removeListener(_onExpensesChanged);
+    _packaging.removeListener(_onPackagingChanged);
     _products.dispose();
     _customers.dispose();
     _expenses.dispose();
+    _packaging.dispose();
     super.dispose();
   }
 
@@ -64,12 +70,15 @@ class _RayhanAppState extends State<RayhanApp> {
     final savedProducts = await _localStore.loadProducts();
     final savedCustomers = await _localStore.loadCustomers();
     final savedExpenses = await _localStore.loadExpenses();
+    final savedPackaging = await _localStore.loadPackaging();
     _products.restoreFromJson(savedProducts);
     _customers.restoreFromJson(savedCustomers);
     _expenses.restoreFromJson(savedExpenses);
+    _packaging.restoreFromJson(savedPackaging);
     _products.addListener(_onProductsChanged);
     _customers.addListener(_onCustomersChanged);
     _expenses.addListener(_onExpensesChanged);
+    _packaging.addListener(_onPackagingChanged);
 
     if (!mounted) {
       return;
@@ -101,6 +110,14 @@ class _RayhanAppState extends State<RayhanApp> {
     _expensesSaveTimer?.cancel();
     _expensesSaveTimer = Timer(_debounceDuration, () {
       _localStore.saveExpenses(_expenses.toJson());
+    });
+  }
+
+  void _onPackagingChanged() {
+    if (!_isReady) return;
+    _packagingSaveTimer?.cancel();
+    _packagingSaveTimer = Timer(_debounceDuration, () {
+      _localStore.savePackaging(_packaging.toJson());
     });
   }
 
@@ -139,6 +156,7 @@ class _RayhanAppState extends State<RayhanApp> {
         builder: (_) => SellProductPage(
           products: _products,
           customers: _customers,
+          packaging: _packaging,
           initialProductId: productId,
         ),
       );
@@ -167,6 +185,7 @@ class _RayhanAppState extends State<RayhanApp> {
                   products: _products,
                   customers: _customers,
                   expenses: _expenses,
+                  packaging: _packaging,
                   onLogout: _logout,
                   onLocaleChanged: () => setState(() {}),
                 )
