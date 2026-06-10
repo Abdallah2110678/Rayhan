@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/utils/translator.dart';
 import '../models/packaging_item.dart';
 import '../state/packaging_controller.dart';
+import '../widgets/collapsing_header_page.dart';
 import '../widgets/page_header.dart';
 
 class PackagingPage extends StatefulWidget {
@@ -76,52 +77,43 @@ class _PackagingPageState extends State<PackagingPage> {
         final items = widget.packaging.items;
         final totalBottles = items.fold<int>(0, (sum, i) => sum + i.quantity);
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        return CollapsingHeaderPage(
+          header: PageHeader(
+            title: Translator.translate('packaging_title'),
+            subtitle: Translator.translate('packaging_subtitle'),
+          ),
+          between: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              PageHeader(
-                title: Translator.translate('packaging_title'),
-                subtitle: Translator.translate('packaging_subtitle'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  if (items.isNotEmpty)
-                    _SummaryChip(
-                      label: Translator.translate('total_bottles'),
-                      value: '$totalBottles',
-                    ),
-                  const Spacer(),
-                  FilledButton.icon(
-                    onPressed: () => _openEditor(),
-                    icon: const Icon(Icons.add),
-                    label: Text(Translator.translate('add_packaging')),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: items.isEmpty
-                    ? _EmptyState()
-                    : ListView.separated(
-                        itemCount: items.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = items[index];
-                          return _PackagingTile(
-                            item: item,
-                            onEdit: () => _openEditor(item),
-                            onDelete: () => _deleteItem(item),
-                          );
-                        },
-                      ),
+              if (items.isNotEmpty)
+                _SummaryChip(
+                  label: Translator.translate('total_bottles'),
+                  value: '$totalBottles',
+                ),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: () => _openEditor(),
+                icon: const Icon(Icons.add),
+                label: Text(Translator.translate('add_packaging')),
               ),
             ],
           ),
+          betweenSpacing: 20,
+          child: items.isEmpty
+              ? _EmptyState()
+              : ListView.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _PackagingTile(
+                      item: item,
+                      onEdit: () => _openEditor(item),
+                      onDelete: () => _deleteItem(item),
+                    );
+                  },
+                ),
         );
       },
     );

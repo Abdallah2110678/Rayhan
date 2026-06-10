@@ -3,6 +3,7 @@
 import '../core/utils/translator.dart';
 import '../models/product_draft.dart';
 import '../state/product_catalog_controller.dart';
+import '../widgets/collapsing_header_page.dart';
 import '../widgets/page_header.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -95,28 +96,22 @@ class _AddProductPageState extends State<AddProductPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              PageHeader(
-                title: Translator.translate(
-                  _isEditing ? 'edit_product' : 'add_a_product',
-                ),
-                subtitle: Translator.translate(
-                  _isEditing ? 'edit_product_subtitle' : 'add_product_subtitle',
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    child: Card(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Form(
+        child: CollapsingHeaderPage(
+          header: PageHeader(
+            title: Translator.translate(
+              _isEditing ? 'edit_product' : 'add_a_product',
+            ),
+            subtitle: Translator.translate(
+              _isEditing ? 'edit_product_subtitle' : 'add_product_subtitle',
+            ),
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Card(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
                           key: _formKey,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,9 +231,6 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );

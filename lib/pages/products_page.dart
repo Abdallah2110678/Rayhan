@@ -4,6 +4,7 @@ import '../core/utils/formatters.dart';
 import '../core/utils/translator.dart';
 import '../models/product.dart';
 import '../state/product_catalog_controller.dart';
+import '../widgets/collapsing_header_page.dart';
 import '../widgets/page_header.dart';
 import '../widgets/product_card.dart';
 import 'product_details_page.dart';
@@ -42,83 +43,69 @@ class _ProductsPageState extends State<ProductsPage> {
         final products = widget.catalog.search(_query);
         final hasProducts = widget.catalog.products.isNotEmpty;
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              PageHeader(
-                title: Translator.translate('all_products_page_title'),
-                subtitle: Translator.translate('all_products_page_subtitle'),
-                trailing: _OverviewPill(
-                  label: Translator.translate('products_overview'),
-                  value: formatMillimeters(widget.catalog.totalQuantityMm),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _query = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: Translator.translate('search_products'),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: !hasProducts
-                    ? _EmptyState(
-                        icon: Icons.inventory_2_outlined,
-                        title: Translator.translate('no_products_yet'),
-                        description: Translator.translate(
-                          'no_products_yet_description',
-                        ),
-                      )
-                    : products.isEmpty
-                    ? _EmptyState(
-                            icon: Icons.search_off,
-                        title: Translator.translate('no_matching_products'),
-                        description: Translator.translate(
-                          'no_matching_products_description',
-                        ),
-                          )
-                        : LayoutBuilder(
-                            builder: (context, constraints) {
-                              final crossAxisCount = constraints.maxWidth >= 1200
-                                  ? 3
-                                  : constraints.maxWidth >= 760
-                                      ? 2
-                                      : 1;
-
-                              return GridView.builder(
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: crossAxisCount,
-                                  crossAxisSpacing: 18,
-                                  mainAxisSpacing: 18,
-                              // increase vertical space for single-column cards to avoid overflow
-                              childAspectRatio: crossAxisCount == 1
-                                  ? 1.25
-                                  : 1.08,
-                                ),
-                                itemCount: products.length,
-                                itemBuilder: (context, index) {
-                                  final product = products[index];
-                                  return ProductCard(
-                                    product: product,
-                                    onOpen: () => _openDetails(product),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-              ),
-            ],
+        return CollapsingHeaderPage(
+          header: PageHeader(
+            title: Translator.translate('all_products_page_title'),
+            subtitle: Translator.translate('all_products_page_subtitle'),
+            trailing: _OverviewPill(
+              label: Translator.translate('products_overview'),
+              value: formatMillimeters(widget.catalog.totalQuantityMm),
+            ),
           ),
+          between: TextField(
+            controller: _searchController,
+            onChanged: (value) {
+              setState(() {
+                _query = value;
+              });
+            },
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: Translator.translate('search_products'),
+            ),
+          ),
+          betweenSpacing: 20,
+          child: !hasProducts
+              ? _EmptyState(
+                  icon: Icons.inventory_2_outlined,
+                  title: Translator.translate('no_products_yet'),
+                  description: Translator.translate(
+                    'no_products_yet_description',
+                  ),
+                )
+              : products.isEmpty
+              ? _EmptyState(
+                  icon: Icons.search_off,
+                  title: Translator.translate('no_matching_products'),
+                  description: Translator.translate(
+                    'no_matching_products_description',
+                  ),
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final crossAxisCount = constraints.maxWidth >= 1200
+                        ? 3
+                        : constraints.maxWidth >= 760
+                            ? 2
+                            : 1;
+                    return GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 18,
+                        mainAxisSpacing: 18,
+                        childAspectRatio: crossAxisCount == 1 ? 1.25 : 1.08,
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return ProductCard(
+                          product: product,
+                          onOpen: () => _openDetails(product),
+                        );
+                      },
+                    );
+                  },
+                ),
         );
       },
     );

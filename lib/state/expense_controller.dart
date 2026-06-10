@@ -96,4 +96,15 @@ class ExpenseController extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  List<ExpenseRecord> expensesBetween(DateTime from, DateTime to) {
+    final fromDate = DateTime(from.year, from.month, from.day);
+    final toDate = DateTime(to.year, to.month, to.day, 23, 59, 59, 999);
+    return _expenses
+        .where((e) => !e.date.isBefore(fromDate) && !e.date.isAfter(toDate))
+        .toList(growable: false);
+  }
+
+  double totalExpensesBetween(DateTime from, DateTime to) =>
+      expensesBetween(from, to).fold<double>(0, (sum, e) => sum + e.amount);
 }

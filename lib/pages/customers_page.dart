@@ -5,6 +5,7 @@ import '../core/utils/translator.dart';
 import '../models/customer.dart';
 import '../models/customer_draft.dart';
 import '../state/customer_controller.dart';
+import '../widgets/collapsing_header_page.dart';
 import '../widgets/page_header.dart';
 
 class CustomersPage extends StatefulWidget {
@@ -78,58 +79,49 @@ class _CustomersPageState extends State<CustomersPage> {
         final customers = widget.customers.search(_query);
         final hasCustomers = widget.customers.customers.isNotEmpty;
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              PageHeader(
-                title: Translator.translate('special_customers'),
-                subtitle: Translator.translate('customers_subtitle'),
-                trailing: FilledButton.icon(
-                  onPressed: _openEditor,
-                  icon: const Icon(Icons.person_add_alt_1),
-                  label: Text(Translator.translate('add_customer')),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _searchController,
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: Translator.translate('search_hint'),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: !hasCustomers
-                    ? _EmptyState(
-                        icon: Icons.people_outline,
-                        title: Translator.translate('no_special_customers_yet'),
-                        description: '',
-                      )
-                    : customers.isEmpty
-                    ? _EmptyState(
-                        icon: Icons.search_off,
-                        title: Translator.translate('no_customers_found'),
-                        description: Translator.translate('no_customers_found_description'),
-                      )
-                    : ListView.separated(
-                        itemCount: customers.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final customer = customers[index];
-                          return _CustomerTile(
-                            customer: customer,
-                            onEdit: () => _openEditor(customer),
-                            onDelete: () => _deleteCustomer(customer),
-                          );
-                        },
-                      ),
-              ),
-            ],
+        return CollapsingHeaderPage(
+          header: PageHeader(
+            title: Translator.translate('special_customers'),
+            subtitle: Translator.translate('customers_subtitle'),
+            trailing: FilledButton.icon(
+              onPressed: _openEditor,
+              icon: const Icon(Icons.person_add_alt_1),
+              label: Text(Translator.translate('add_customer')),
+            ),
           ),
+          between: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _query = value),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: Translator.translate('search_hint'),
+            ),
+          ),
+          betweenSpacing: 20,
+          child: !hasCustomers
+              ? _EmptyState(
+                  icon: Icons.people_outline,
+                  title: Translator.translate('no_special_customers_yet'),
+                  description: '',
+                )
+              : customers.isEmpty
+              ? _EmptyState(
+                  icon: Icons.search_off,
+                  title: Translator.translate('no_customers_found'),
+                  description: Translator.translate('no_customers_found_description'),
+                )
+              : ListView.separated(
+                  itemCount: customers.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final customer = customers[index];
+                    return _CustomerTile(
+                      customer: customer,
+                      onEdit: () => _openEditor(customer),
+                      onDelete: () => _deleteCustomer(customer),
+                    );
+                  },
+                ),
         );
       },
     );

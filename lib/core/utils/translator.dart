@@ -206,6 +206,12 @@ class Translator {
       'add_product': 'Add product',
       'remove': 'Remove',
       'total': 'Total',
+      'expenses_tab': 'Expenses',
+      'report_tab': 'Report',
+      'sales_in_period': 'Sales in period',
+      'expenses_in_period': 'Expenses in period',
+      'top_selling_products': 'Top selling products',
+      'no_data_in_period': 'No data found for this period.',
     },
     'ar': {
       'login': 'تسجيل الدخول',
@@ -400,6 +406,12 @@ class Translator {
       'add_product': 'إضافة منتج',
       'remove': 'إزالة',
       'total': 'الإجمالي',
+      'expenses_tab': 'المصاريف',
+      'report_tab': 'التقرير',
+      'sales_in_period': 'المبيعات في الفترة',
+      'expenses_in_period': 'المصاريف في الفترة',
+      'top_selling_products': 'أفضل المنتجات مبيعًا',
+      'no_data_in_period': 'لا توجد بيانات في هذه الفترة.',
     },
   };
 

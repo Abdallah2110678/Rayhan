@@ -279,4 +279,41 @@ class ProductCatalogController extends ChangeNotifier {
   double totalSoldQuantityBetween(DateTime from, DateTime to) =>
       salesBetween(from, to)
           .fold<double>(0, (sum, s) => sum + s.quantityMm);
+
+  List<ProductSaleSummary> topSellingProductsBetween(DateTime from, DateTime to) {
+    final filtered = salesBetween(from, to);
+    final Map<String, ProductSaleSummary> map = {};
+
+    for (final sale in filtered) {
+      final existing = map[sale.productId];
+      if (existing != null) {
+        map[sale.productId] = (
+          productId: existing.productId,
+          productName: existing.productName,
+          totalRevenue: existing.totalRevenue + sale.finalTotal,
+          totalQuantityMm: existing.totalQuantityMm + sale.quantityMm,
+          salesCount: existing.salesCount + 1,
+        );
+      } else {
+        map[sale.productId] = (
+          productId: sale.productId,
+          productName: sale.productName,
+          totalRevenue: sale.finalTotal,
+          totalQuantityMm: sale.quantityMm,
+          salesCount: 1,
+        );
+      }
+    }
+
+    return map.values.toList()
+      ..sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
+  }
 }
+
+typedef ProductSaleSummary = ({
+  String productId,
+  String productName,
+  double totalRevenue,
+  double totalQuantityMm,
+  int salesCount,
+});

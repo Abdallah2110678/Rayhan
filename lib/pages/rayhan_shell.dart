@@ -57,7 +57,7 @@ class _RayhanShellState extends State<RayhanShell> {
         packaging: widget.packaging,
       ),
       CustomersPage(customers: widget.customers),
-      FinancesPage(expenses: widget.expenses),
+      FinancesPage(expenses: widget.expenses, products: widget.products),
       PackagingPage(packaging: widget.packaging),
     ];
 
@@ -117,7 +117,7 @@ class _RayhanShellState extends State<RayhanShell> {
           ),
           child: Scaffold(
             appBar: AppBar(
-              toolbarHeight: 88,
+              toolbarHeight: MediaQuery.sizeOf(context).height < 500 ? 64 : 88,
               title: const BrandMark(),
               actions: <Widget>[
                 Padding(
