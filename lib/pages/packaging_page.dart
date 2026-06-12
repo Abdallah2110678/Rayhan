@@ -28,12 +28,14 @@ class _PackagingPageState extends State<PackagingPage> {
       widget.packaging.addItem(
         result['sizeMl'] as double,
         result['quantity'] as int,
+        type: result['type'] as PackagingType,
       );
     } else {
       widget.packaging.updateItem(
         item.id,
         sizeMl: result['sizeMl'] as double,
         quantity: result['quantity'] as int,
+        type: result['type'] as PackagingType,
       );
     }
   }
@@ -46,7 +48,11 @@ class _PackagingPageState extends State<PackagingPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(Translator.translate('delete_packaging')),
+        title: Text(
+          item.type == PackagingType.box
+              ? Translator.translate('delete_box')
+              : Translator.translate('delete_packaging'),
+        ),
         content: Text(
           Translator.translate('delete_packaging_confirm', {'name': sizeLabel}),
         ),
@@ -75,7 +81,12 @@ class _PackagingPageState extends State<PackagingPage> {
       animation: widget.packaging,
       builder: (context, _) {
         final items = widget.packaging.items;
-        final totalBottles = items.fold<int>(0, (sum, i) => sum + i.quantity);
+        final totalBottles = items
+            .where((i) => i.type == PackagingType.bottle)
+            .fold<int>(0, (sum, i) => sum + i.quantity);
+        final totalBoxes = items
+            .where((i) => i.type == PackagingType.box)
+            .fold<int>(0, (sum, i) => sum + i.quantity);
 
         return CollapsingHeaderPage(
           header: PageHeader(
@@ -85,11 +96,18 @@ class _PackagingPageState extends State<PackagingPage> {
           between: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              if (items.isNotEmpty)
+              if (items.isNotEmpty) ...<Widget>[
                 _SummaryChip(
                   label: Translator.translate('total_bottles'),
                   value: '$totalBottles',
                 ),
+                const SizedBox(width: 8),
+                _SummaryChip(
+                  label: Translator.translate('total_boxes'),
+                  value: '$totalBoxes',
+                  color: const Color(0xFF5A3E8A),
+                ),
+              ],
               const Spacer(),
               FilledButton.icon(
                 onPressed: () => _openEditor(),
@@ -121,10 +139,15 @@ class _PackagingPageState extends State<PackagingPage> {
 }
 
 class _SummaryChip extends StatelessWidget {
-  const _SummaryChip({required this.label, required this.value});
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+    this.color = const Color(0xFF1D403B),
+  });
 
   final String label;
   final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +162,7 @@ class _SummaryChip extends StatelessWidget {
         '$label: $value',
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1D403B),
+              color: color,
             ),
       ),
     );
@@ -159,10 +182,11 @@ class _PackagingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isBox = item.type == PackagingType.box;
     final isLow = item.quantity <= 5;
     final isEmpty = item.quantity == 0;
 
-    Color quantityColor = const Color(0xFF1D403B);
+    Color quantityColor = isBox ? const Color(0xFF5A3E8A) : const Color(0xFF1D403B);
     if (isEmpty) {
       quantityColor = Colors.red.shade700;
     } else if (isLow) {
@@ -172,6 +196,10 @@ class _PackagingTile extends StatelessWidget {
     final sizeLabel = item.sizeMl % 1 == 0
         ? '${item.sizeMl.toInt()} ml'
         : '${item.sizeMl} ml';
+
+    final typeLabel = isBox
+        ? Translator.translate('box_type')
+        : Translator.translate('bottle_type');
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -183,7 +211,9 @@ class _PackagingTile extends StatelessWidget {
               ? Colors.red.shade200
               : isLow
                   ? Colors.orange.shade200
-                  : const Color(0xFFE5DCCF),
+                  : isBox
+                      ? const Color(0xFFD8CFF0)
+                      : const Color(0xFFE5DCCF),
         ),
       ),
       child: Row(
@@ -192,25 +222,43 @@ class _PackagingTile extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F2E9),
+              color: isBox
+                  ? const Color(0xFFF3F0FA)
+                  : const Color(0xFFF7F2E9),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              Icons.water_drop_outlined,
+              isBox ? Icons.inventory_2_outlined : Icons.water_drop_outlined,
               color: isEmpty
                   ? Colors.red.shade400
                   : isLow
                       ? Colors.orange.shade400
-                      : const Color(0xFF4A7C6F),
+                      : isBox
+                          ? const Color(0xFF5A3E8A)
+                          : const Color(0xFF4A7C6F),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              sizeLabel,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  sizeLabel,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                Text(
+                  typeLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: isBox
+                            ? const Color(0xFF8A6EC4)
+                            : const Color(0xFF9EB5AF),
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
             ),
           ),
           Column(
@@ -300,10 +348,12 @@ class _PackagingEditorState extends State<_PackagingEditor> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _sizeController;
   late final TextEditingController _quantityController;
+  late PackagingType _type;
 
   @override
   void initState() {
     super.initState();
+    _type = widget.item?.type ?? PackagingType.bottle;
     _sizeController = TextEditingController(
       text: widget.item == null
           ? ''
@@ -328,6 +378,7 @@ class _PackagingEditorState extends State<_PackagingEditor> {
     Navigator.of(context).pop(<String, dynamic>{
       'sizeMl': double.parse(_sizeController.text.trim()),
       'quantity': int.parse(_quantityController.text.trim()),
+      'type': _type,
     });
   }
 
@@ -343,6 +394,94 @@ class _PackagingEditorState extends State<_PackagingEditor> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
+            // Type selector
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _type = PackagingType.bottle),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _type == PackagingType.bottle
+                              ? const Color(0xFF4A7C6F)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Icon(
+                              Icons.water_drop_outlined,
+                              size: 16,
+                              color: _type == PackagingType.bottle
+                                  ? Colors.white
+                                  : const Color(0xFF4A7C6F),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              Translator.translate('bottle_type'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: _type == PackagingType.bottle
+                                    ? Colors.white
+                                    : const Color(0xFF4A7C6F),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _type = PackagingType.box),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _type == PackagingType.box
+                              ? const Color(0xFF5A3E8A)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 16,
+                              color: _type == PackagingType.box
+                                  ? Colors.white
+                                  : const Color(0xFF5A3E8A),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              Translator.translate('box_type'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: _type == PackagingType.box
+                                    ? Colors.white
+                                    : const Color(0xFF5A3E8A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _sizeController,
               keyboardType:

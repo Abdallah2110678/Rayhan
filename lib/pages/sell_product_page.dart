@@ -76,6 +76,7 @@ class _SellProductPageState extends State<SellProductPage> {
       quantityController: TextEditingController(),
       unitPriceController: TextEditingController(),
       discountController: TextEditingController(text: '0'),
+      subtotalController: TextEditingController(),
       finalTotalController: TextEditingController(),
     );
   }
@@ -94,9 +95,19 @@ class _SellProductPageState extends State<SellProductPage> {
     final unitPrice = double.tryParse(row.unitPriceController.text.trim()) ?? 0;
     final discountPercent =
         double.tryParse(row.discountController.text.trim()) ?? 0;
-    final suggestedTotal =
-        (unitPrice * quantityMm) * (1 - (discountPercent / 100));
-    row.finalTotalController.text = suggestedTotal.toStringAsFixed(2);
+    final subtotal = unitPrice * quantityMm;
+    row.subtotalController.text = subtotal.toStringAsFixed(2);
+    row.finalTotalController.text =
+        (subtotal * (1 - discountPercent / 100)).toStringAsFixed(2);
+  }
+
+  void _applyFinalFromSubtotal(_SaleRow row) {
+    final subtotal =
+        double.tryParse(row.subtotalController.text.trim()) ?? 0;
+    final discountPercent =
+        double.tryParse(row.discountController.text.trim()) ?? 0;
+    row.finalTotalController.text =
+        (subtotal * (1 - discountPercent / 100)).toStringAsFixed(2);
   }
 
   void _addSaleRow() {
@@ -182,10 +193,11 @@ class _SellProductPageState extends State<SellProductPage> {
         );
         totalSale += total;
 
-        final deducted = widget.packaging.deductBottle(quantityMm);
         final sizeLabel = quantityMm % 1 == 0
             ? quantityMm.toInt().toString()
             : quantityMm.toString();
+
+        final deducted = widget.packaging.deductBottle(quantityMm);
         if (!deducted) {
           bottleMessages.add(
             Translator.translate('no_matching_bottle', {'size': sizeLabel}),
@@ -197,6 +209,23 @@ class _SellProductPageState extends State<SellProductPage> {
               Translator.translate('low_bottle_stock', {
                 'size': sizeLabel,
                 'count': '${bottle.quantity}',
+              }),
+            );
+          }
+        }
+
+        final boxDeducted = widget.packaging.deductBox(quantityMm);
+        if (!boxDeducted) {
+          bottleMessages.add(
+            Translator.translate('no_matching_box', {'size': sizeLabel}),
+          );
+        } else {
+          final box = widget.packaging.boxBySize(quantityMm);
+          if (box != null && box.quantity <= 5) {
+            bottleMessages.add(
+              Translator.translate('low_box_stock', {
+                'size': sizeLabel,
+                'count': '${box.quantity}',
               }),
             );
           }
@@ -313,6 +342,9 @@ class _SellProductPageState extends State<SellProductPage> {
                                 },
                                 onFieldChanged: () => setState(
                                     () => _applySuggestedFinalTotalForRow(row)),
+                                onSubtotalOrDiscountChanged: () => setState(
+                                    () => _applyFinalFromSubtotal(row)),
+                                onFinalChanged: () => setState(() {}),
                               );
                             }),
                             const SizedBox(height: 8),
@@ -374,6 +406,8 @@ class _ProductRowCard extends StatelessWidget {
     required this.onRemove,
     required this.onProductChanged,
     required this.onFieldChanged,
+    required this.onSubtotalOrDiscountChanged,
+    required this.onFinalChanged,
   });
 
   final int index;
@@ -382,7 +416,12 @@ class _ProductRowCard extends StatelessWidget {
   final bool canRemove;
   final VoidCallback onRemove;
   final ValueChanged<String?> onProductChanged;
+  // qty / price changes → recompute subtotal + final
   final VoidCallback onFieldChanged;
+  // subtotal or discount changes → recompute final from subtotal
+  final VoidCallback onSubtotalOrDiscountChanged;
+  // final price edited by user → just refresh order summary
+  final VoidCallback onFinalChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -500,6 +539,16 @@ class _ProductRowCard extends StatelessWidget {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final useRow = constraints.maxWidth >= 400;
+                    final subtotalField = TextFormField(
+                      controller: row.subtotalController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      decoration: InputDecoration(
+                        labelText: Translator.translate('subtotal'),
+                      ),
+                      validator: _positiveDoubleValidator,
+                      onChanged: (_) => onSubtotalOrDiscountChanged(),
+                    );
                     final discountField = TextFormField(
                       controller: row.discountController,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -509,34 +558,35 @@ class _ProductRowCard extends StatelessWidget {
                         suffixText: '%',
                       ),
                       validator: _discountValidator,
-                      onChanged: (_) => onFieldChanged(),
-                    );
-                    final finalPriceField = TextFormField(
-                      controller: row.finalTotalController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
-                      decoration: InputDecoration(
-                        labelText: Translator.translate('final_price'),
-                      ),
-                      validator: _positiveDoubleValidator,
-                      onChanged: (_) => onFieldChanged(),
+                      onChanged: (_) => onSubtotalOrDiscountChanged(),
                     );
                     return useRow
                         ? Row(
                             children: <Widget>[
-                              Expanded(child: discountField),
+                              Expanded(child: subtotalField),
                               const SizedBox(width: 12),
-                              Expanded(child: finalPriceField),
+                              Expanded(child: discountField),
                             ],
                           )
                         : Column(
                             children: <Widget>[
-                              discountField,
+                              subtotalField,
                               const SizedBox(height: 12),
-                              finalPriceField,
+                              discountField,
                             ],
                           );
                   },
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: row.finalTotalController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: Translator.translate('final_price'),
+                  ),
+                  validator: _positiveDoubleValidator,
+                  onChanged: (_) => onFinalChanged(),
                 ),
               ],
             ),
@@ -1029,6 +1079,7 @@ class _SaleRow {
     required this.quantityController,
     required this.unitPriceController,
     required this.discountController,
+    required this.subtotalController,
     required this.finalTotalController,
   });
 
@@ -1036,12 +1087,14 @@ class _SaleRow {
   final TextEditingController quantityController;
   final TextEditingController unitPriceController;
   final TextEditingController discountController;
+  final TextEditingController subtotalController;
   final TextEditingController finalTotalController;
 
   void dispose() {
     quantityController.dispose();
     unitPriceController.dispose();
     discountController.dispose();
+    subtotalController.dispose();
     finalTotalController.dispose();
   }
 }
